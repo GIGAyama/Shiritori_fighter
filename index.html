@@ -1,747 +1,1718 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>しりとりファイター</title>
-   <!-- Wanakana.js (かな変換ライブラリ) を読み込み -->
-   <script src="https://unpkg.com/wanakana"></script>
-   <style>
-       /* Google Fontsをインポート */
-       @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&family=Press+Start+2P&display=swap');
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="しりとりで対戦するバトルゲーム。声でも遊べる！ふたりでも、ひとりでも。">
+<meta name="theme-color" content="#312e81">
+<title>しりとりファイター</title>
 
+<!-- PWA (静的ホスティング時に有効。GAS上では無視されます) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="しりとりファイター">
 
-       /* 基本スタイル */
-       :root {
-           --player1-color: #ff6b6b;
-           --player2-color: #48dbfb;
-           --accent-color: #feca57;
-           --dark-text: #3d3d3d;
-           --damage-color: #ff4757;
-       }
+<!-- フォント (オフライン時はシステムフォントにフォールバック) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=DotGothic16&display=swap">
 
+<style>
+/* ================================================================
+   デザイントークン
+================================================================ */
+:root {
+    --p1: #ff5e7d;
+    --p1-soft: #ff8ba3;
+    --p2: #38bdf8;
+    --p2-soft: #7dd3fc;
+    --accent: #fbbf24;
+    --accent-2: #f59e0b;
+    --good: #34d399;
+    --danger: #f43f5e;
+    --ink: #f5f3ff;
+    --ink-dim: #c7c3e6;
+    --bg-deep: #170f33;
+    --bg-mid: #2b1b63;
+    --panel: rgba(255, 255, 255, 0.08);
+    --panel-strong: rgba(255, 255, 255, 0.13);
+    --panel-border: rgba(255, 255, 255, 0.16);
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    --radius: 20px;
+    --radius-sm: 12px;
+    --font-main: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'BIZ UDGothic', 'Noto Sans JP', sans-serif;
+    --font-game: 'DotGothic16', var(--font-main);
+}
 
-       * {
-           margin: 0;
-           padding: 0;
-           box-sizing: border-box;
-       }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 
+body {
+    font-family: var(--font-main);
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--bg-deep);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    touch-action: manipulation;
+}
 
-       body {
-           font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
-           font-weight: 500;
-           background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
-           min-height: 100vh;
-           display: flex;
-           justify-content: center;
-           align-items: center;
-           color: var(--dark-text);
-           overflow-x: hidden;
-       }
-      
-       /* ゲーム全体のコンテナ */
-       .container {
-           width: 100%;
-           max-width: 800px;
-           padding: 1rem;
-       }
-      
-       /* --- 共通スタイル --- */
-       .glass-panel {
-           background-color: rgba(255, 255, 255, 0.7);
-           backdrop-filter: blur(10px);
-           -webkit-backdrop-filter: blur(10px);
-           padding: 2rem;
-           border-radius: 1.5rem;
-           border: 1px solid rgba(255, 255, 255, 0.3);
-           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
-       }
-      
-       .game-title {
-           font-family: 'Press Start 2P', cursive;
-           margin-bottom: 2rem;
-           text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-           color: #fff;
-           -webkit-text-stroke: 1.5px var(--dark-text);
-           text-align: center;
-       }
-      
-       input::placeholder { color: #aaa; }
+/* アニメーション背景 */
+.bg-arena {
+    position: fixed; inset: 0; z-index: -2;
+    background:
+        radial-gradient(60% 55% at 18% 8%, rgba(120, 80, 255, .45), transparent 65%),
+        radial-gradient(55% 50% at 85% 90%, rgba(236, 72, 153, .35), transparent 65%),
+        radial-gradient(45% 45% at 80% 12%, rgba(56, 189, 248, .28), transparent 60%),
+        linear-gradient(160deg, var(--bg-mid) 0%, var(--bg-deep) 60%, #0d0a20 100%);
+}
+.bg-arena::before, .bg-arena::after {
+    content: ''; position: absolute; border-radius: 50%;
+    filter: blur(70px); opacity: .5; will-change: transform;
+}
+.bg-arena::before {
+    width: 46vmax; height: 46vmax; left: -12vmax; top: -12vmax;
+    background: radial-gradient(circle, rgba(129, 90, 255, .55), transparent 70%);
+    animation: drift1 26s ease-in-out infinite alternate;
+}
+.bg-arena::after {
+    width: 40vmax; height: 40vmax; right: -10vmax; bottom: -14vmax;
+    background: radial-gradient(circle, rgba(244, 114, 182, .45), transparent 70%);
+    animation: drift2 32s ease-in-out infinite alternate;
+}
+@keyframes drift1 { to { transform: translate(9vmax, 7vmax) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-8vmax, -6vmax) scale(1.1); } }
 
+/* エフェクト用キャンバス */
+#fx-canvas { position: fixed; inset: 0; z-index: 50; pointer-events: none; }
 
+/* ================================================================
+   アプリ全体レイアウト
+================================================================ */
+.app {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top, 0px) + 8px)
+             calc(env(safe-area-inset-right, 0px) + 12px)
+             calc(env(safe-area-inset-bottom, 0px) + 10px)
+             calc(env(safe-area-inset-left, 0px) + 12px);
+}
 
+.app-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 4px 2px 8px;
+}
+.app-logo {
+    font-family: var(--font-game);
+    font-size: clamp(1rem, 3.6vw, 1.35rem);
+    letter-spacing: .04em;
+    display: flex; align-items: center; gap: .4em;
+    text-shadow: 0 2px 10px rgba(120, 80, 255, .6);
+    user-select: none;
+}
+.app-logo .bolt { color: var(--accent); filter: drop-shadow(0 0 6px rgba(251,191,36,.8)); }
+.header-actions { display: flex; gap: 8px; }
+.icon-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--ink); font-size: 1.15rem;
+    cursor: pointer; display: grid; place-items: center;
+    transition: transform .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.icon-btn:active { transform: scale(.92); }
+#install-btn {
+    width: auto; padding: 0 12px; font-size: .8rem; font-weight: 800;
+    font-family: var(--font-main); gap: 6px; display: none;
+    background: linear-gradient(45deg, var(--accent), var(--accent-2));
+    color: #442c00; border: none;
+}
+#install-btn.available { display: inline-flex; align-items: center; }
 
-       /* --- セットアップ画面のスタイル --- */
-       #setup-screen {
-           text-align: center;
-       }
+.screen { display: none; flex: 1; flex-direction: column; min-height: 0; }
+.screen.active { display: flex; }
 
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
+}
 
-       .player-setup { margin-bottom: 2rem; }
-       .player-setup h2 {
-           margin-bottom: 1rem;
-           text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
-       }
-       .player-setup.p1 h2 { color: var(--player1-color); }
-       .player-setup.p2 h2 { color: var(--player2-color); }
+button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 
+/* ================================================================
+   タイトル / セットアップ画面
+================================================================ */
+#setup-screen { gap: 14px; padding-bottom: 8px; }
 
-       .player-setup input, .setting-item input {
-           width: 100%;
-           padding: 0.75rem;
-           border-radius: 0.5rem;
-           border: 2px solid #fff;
-           background-color: rgba(255, 255, 255, 0.5);
-           color: var(--dark-text);
-           font-size: 1rem;
-           font-family: 'M PLUS Rounded 1c', sans-serif;
-       }
-      
-       .character-selection {
-           display: flex;
-           flex-wrap: wrap;
-           gap: 1rem;
-           justify-content: center;
-           margin-top: 1rem;
-       }
+.title-hero { text-align: center; padding: clamp(8px, 2.5vh, 26px) 0 4px; user-select: none; }
+.title-hero .hero-mark {
+    font-size: clamp(2.4rem, 9vw, 4rem); line-height: 1;
+    display: inline-block;
+    animation: heroFloat 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 6px 18px rgba(251,191,36,.35));
+}
+@keyframes heroFloat { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
+.title-hero h1 {
+    font-family: var(--font-game);
+    font-size: clamp(1.7rem, 7.5vw, 3rem);
+    letter-spacing: .06em;
+    background: linear-gradient(180deg, #fff 20%, #ffd76e 55%, #ff9d43 90%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 3px 0 rgba(90, 40, 140, .9)) drop-shadow(0 6px 16px rgba(0,0,0,.45));
+}
+.title-hero p { color: var(--ink-dim); font-size: clamp(.8rem, 3vw, .95rem); margin-top: 6px; }
 
+.setup-card { padding: clamp(14px, 3vw, 22px); }
+.setup-section-label {
+    font-weight: 800; font-size: .95rem; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+}
+.setup-section-label::before { content: ''; width: 5px; height: 1.1em; border-radius: 3px; background: var(--accent); }
 
-       .char-option {
-           font-size: 2.5rem;
-           cursor: pointer;
-           transition: transform 0.2s ease, filter 0.2s ease;
-           filter: saturate(30%) opacity(70%);
-           padding: 0.5rem;
-           border-radius: 0.5rem;
-           background-color: transparent;
-           border: 2px solid transparent;
-       }
-       .char-option:hover { transform: scale(1.2); filter: saturate(100%) opacity(100%); }
-       .char-option.selected {
-           transform: scale(1.2);
-           filter: saturate(100%) opacity(100%);
-           border-color: var(--accent-color);
-           box-shadow: 0 0 15px var(--accent-color);
-       }
+/* モード切り替え */
+.mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mode-tab {
+    padding: 14px 8px; border-radius: var(--radius-sm);
+    border: 2px solid var(--panel-border); background: var(--panel);
+    color: var(--ink); font-size: clamp(.9rem, 3.4vw, 1.05rem); font-weight: 800;
+    cursor: pointer; transition: all .2s;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.mode-tab .mode-icon { font-size: 1.6rem; }
+.mode-tab.selected {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(251,191,36,.22), rgba(251,191,36,.08));
+    box-shadow: 0 0 18px rgba(251,191,36,.25);
+}
 
+/* プレイヤー設定 */
+.players-setup { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .players-setup { grid-template-columns: 1fr; } }
+.player-setup { padding: 14px; border-radius: var(--radius-sm); border: 2px solid transparent; }
+.player-setup.p1 { border-color: color-mix(in srgb, var(--p1) 55%, transparent); background: color-mix(in srgb, var(--p1) 8%, transparent); }
+.player-setup.p2 { border-color: color-mix(in srgb, var(--p2) 55%, transparent); background: color-mix(in srgb, var(--p2) 8%, transparent); }
+.player-setup h2 {
+    font-family: var(--font-game); font-size: 1rem; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+}
+.player-setup.p1 h2 { color: var(--p1-soft); }
+.player-setup.p2 h2 { color: var(--p2-soft); }
 
-       .game-settings {
-           margin-bottom: 2rem;
-           display: flex;
-           gap: 2rem;
-           justify-content: center;
-           align-items: center;
-       }
-       .setting-item { display: flex; flex-direction: column; align-items: center; }
-       .setting-item label { margin-bottom: 0.5rem; font-weight: 800; }
-       .setting-item input { width: 120px; text-align: center; font-size: 1.2rem; }
+.player-setup input[type="text"] {
+    width: 100%; padding: 12px; font-size: 16px; /* 16px以上でiOSのズームを防ぐ */
+    border-radius: 10px; border: 1.5px solid var(--panel-border);
+    background: rgba(0, 0, 0, .25); color: var(--ink);
+    font-family: var(--font-main); font-weight: 700;
+    outline: none; transition: border-color .2s;
+}
+.player-setup input[type="text"]:focus { border-color: var(--accent); }
+input::placeholder { color: rgba(255,255,255,.35); font-weight: 500; }
 
+.character-selection {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 6px; margin-top: 10px;
+}
+.char-option {
+    font-size: 1.7rem; line-height: 1; cursor: pointer;
+    aspect-ratio: 1; display: grid; place-items: center;
+    border-radius: 10px; border: 2px solid transparent;
+    background: rgba(0, 0, 0, .18);
+    filter: saturate(.35) opacity(.65);
+    transition: transform .15s, filter .15s, border-color .15s, box-shadow .15s;
+    user-select: none;
+}
+.char-option:hover { transform: scale(1.1); filter: none; }
+.char-option.selected {
+    filter: none; transform: scale(1.08);
+    border-color: var(--accent);
+    box-shadow: 0 0 14px rgba(251,191,36,.45);
+    background: rgba(251,191,36,.12);
+}
 
-       #start-game-btn {
-           font-family: 'Press Start 2P', cursive;
-           padding: 1rem 2rem;
-           font-size: 1.2rem;
-           background: linear-gradient(45deg, #feca57, #ff9f43);
-           color: #fff;
-           border: none;
-           border-radius: 0.5rem;
-           cursor: pointer;
-           transition: transform 0.2s, box-shadow 0.2s;
-           text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
-       }
-       #start-game-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255, 159, 67, 0.4); }
+/* CPU強さ */
+#cpu-level-wrap { display: none; margin-top: 10px; }
+#cpu-level-wrap.visible { display: block; }
+.seg-group { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.seg-btn {
+    padding: 10px 4px; border-radius: 10px;
+    border: 2px solid var(--panel-border); background: rgba(0,0,0,.18);
+    color: var(--ink); font-weight: 800; font-size: .88rem; cursor: pointer;
+    transition: all .15s;
+}
+.seg-btn.selected {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(251,191,36,.25), rgba(251,191,36,.1));
+}
 
+/* ルール設定 */
+.game-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 480px) { .game-settings { grid-template-columns: 1fr; } }
+.setting-item label { display: block; font-weight: 800; font-size: .88rem; margin-bottom: 8px; color: var(--ink-dim); }
 
-       /* --- ゲーム画面のスタイル --- */
-       #game-screen { display: none; }
+/* 開始ボタン */
+#start-game-btn {
+    font-family: var(--font-game);
+    width: 100%; padding: clamp(14px, 2.6vh, 20px);
+    font-size: clamp(1.15rem, 4.5vw, 1.5rem); letter-spacing: .08em;
+    background: linear-gradient(45deg, #fbbf24, #f97316);
+    color: #fff; border: none; border-radius: var(--radius-sm);
+    cursor: pointer; text-shadow: 0 2px 3px rgba(120, 50, 0, .5);
+    box-shadow: 0 6px 0 #b45309, 0 12px 28px rgba(249, 115, 22, .4);
+    transition: transform .12s, box-shadow .12s;
+}
+#start-game-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b45309, 0 6px 14px rgba(249, 115, 22, .35); }
 
+/* ================================================================
+   バトル画面
+================================================================ */
+#game-screen { gap: clamp(8px, 1.4vh, 14px); }
 
-       .game-board {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           gap: 1rem;
-           margin-bottom: 1.5rem;
-       }
+.battle-hud {
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    gap: clamp(6px, 2vw, 14px); align-items: stretch;
+}
+.player-card {
+    padding: clamp(8px, 2vw, 14px);
+    text-align: center; position: relative;
+    border: 2px solid var(--panel-border);
+    transition: border-color .3s, box-shadow .3s, transform .3s;
+}
+.player-card.active { border-color: var(--accent); box-shadow: 0 0 22px rgba(251,191,36,.35), var(--shadow); }
+.player-card.active .player-character { animation: idleBounce 1s ease-in-out infinite; }
+@keyframes idleBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
+.player-label {
+    position: absolute; top: 6px; left: 6px;
+    font-family: var(--font-game); font-size: .62rem;
+    padding: 3px 6px; border-radius: 6px; color: #fff; letter-spacing: .05em;
+}
+.player-card.p1 .player-label { background: var(--p1); }
+.player-card.p2 .player-label { background: var(--p2); }
+.turn-chip {
+    position: absolute; top: 6px; right: 6px; font-size: .95rem;
+    opacity: 0; transform: scale(.5); transition: all .25s;
+}
+.player-card.active .turn-chip { opacity: 1; transform: scale(1); animation: chipPulse 1.2s ease-in-out infinite; }
+@keyframes chipPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.25); } }
 
-       .player-card {
-           width: 48%;
-           padding: 1rem;
-           text-align: center;
-           border: 3px solid transparent;
-           transition: all 0.3s ease;
-           position: relative;
-       }
-       .player-card.active { border-color: var(--accent-color); transform: scale(1.05); }
+.player-character { font-size: clamp(2.4rem, 9vw, 4.2rem); line-height: 1.15; user-select: none; }
+.player-name {
+    font-size: clamp(.8rem, 3vw, 1.05rem); font-weight: 800;
+    margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hp-row {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+    font-size: clamp(.65rem, 2.4vw, .8rem); font-weight: 800; color: var(--ink-dim);
+}
+.hp-num { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+.hp-bar-container {
+    flex: 1; background: rgba(0, 0, 0, .35); border-radius: 99px;
+    height: clamp(10px, 1.8vh, 14px); overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.4);
+}
+.hp-bar {
+    height: 100%; width: 100%; border-radius: 99px; position: relative;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    transition: width .6s cubic-bezier(.22, 1, .36, 1), background .4s;
+}
+.hp-bar.mid { background: linear-gradient(90deg, #fde047, #facc15); }
+.hp-bar.low { background: linear-gradient(90deg, #fb7185, #f43f5e); animation: hpBlink .8s ease-in-out infinite; }
+@keyframes hpBlink { 50% { filter: brightness(1.45); } }
+.hp-bar::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,.45), transparent 55%);
+    border-radius: 99px;
+}
 
+.vs-block { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.vs {
+    font-family: var(--font-game); font-size: clamp(1rem, 4vw, 1.7rem);
+    color: var(--accent); text-shadow: 0 0 12px rgba(251,191,36,.6);
+    user-select: none;
+}
 
-       .player-label {
-           position: absolute;
-           top: 0.5rem;
-           left: 0.5rem;
-           font-family: 'Press Start 2P', cursive;
-           font-size: 0.8rem;
-           padding: 0.2rem 0.4rem;
-           border-radius: 0.3rem;
-           color: #fff;
-       }
-       .player-card.p1 .player-label { background-color: var(--player1-color); }
-       .player-card.p2 .player-label { background-color: var(--player2-color); }
-      
-       .player-character { font-size: 5rem; line-height: 1; }
-       .player-name { font-size: 1.2rem; font-weight: 800; margin-top: 0.5rem; word-break: break-all; }
+/* ダメージポップアップ */
+.dmg-pop {
+    position: absolute; left: 50%; top: 26%;
+    font-family: var(--font-game); font-weight: 800;
+    font-size: clamp(1.3rem, 5.5vw, 2rem);
+    color: var(--danger); text-shadow: 0 0 4px #fff, 0 2px 8px rgba(0,0,0,.6);
+    pointer-events: none; z-index: 20;
+    animation: dmgFloat 1s ease-out forwards;
+}
+.dmg-pop.heal-pop { color: var(--good); }
+@keyframes dmgFloat {
+    0% { transform: translate(-50%, 0) scale(.4); opacity: 0; }
+    18% { transform: translate(-50%, -8px) scale(1.25); opacity: 1; }
+    100% { transform: translate(-50%, -56px) scale(1); opacity: 0; }
+}
 
+/* お題エリア */
+.quest-zone { display: flex; align-items: center; justify-content: center; gap: clamp(10px, 3vw, 20px); }
+.next-char-disc {
+    width: clamp(64px, 15vw, 92px); height: clamp(64px, 15vw, 92px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.28), rgba(255,255,255,.05) 60%),
+                linear-gradient(160deg, #7c3aed, #4c1d95);
+    border: 3px solid rgba(255,255,255,.35);
+    box-shadow: 0 0 26px rgba(139, 92, 246, .55), var(--shadow);
+    display: grid; place-items: center;
+    font-size: clamp(2rem, 8vw, 3.1rem); font-weight: 800;
+    user-select: none;
+}
+.next-char-disc.flip { animation: discFlip .5s ease; }
+@keyframes discFlip { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg) scale(1.12); } 100% { transform: rotateY(0); } }
+.quest-text { text-align: left; }
+.quest-text .q-label { font-size: clamp(.72rem, 2.6vw, .85rem); color: var(--ink-dim); font-weight: 700; }
+.quest-text .q-turn {
+    font-size: clamp(1rem, 3.8vw, 1.3rem); font-weight: 800; margin-top: 2px;
+    max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.quest-text .q-turn.p1-turn { color: var(--p1-soft); }
+.quest-text .q-turn.p2-turn { color: var(--p2-soft); }
 
-       .hp-bar-container { background-color: rgba(0, 0, 0, 0.1); border-radius: 0.5rem; overflow: hidden; margin-top: 1rem; }
-       .hp-bar { height: 20px; width: 100%; border-radius: 0.5rem; transition: width 0.5s ease-in-out; }
-       .player-card.p1 .hp-bar { background: linear-gradient(90deg, #ff8b8b, #ff6b6b); }
-       .player-card.p2 .hp-bar { background: linear-gradient(90deg, #74deff, #48dbfb); }
+/* タイマー */
+.timer-wrap { padding: 8px 12px; }
+.timer-track {
+    height: 10px; border-radius: 99px; background: rgba(0,0,0,.35);
+    overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,.4);
+}
+.timer-fill {
+    height: 100%; width: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    transition: width .1s linear;
+}
+.timer-wrap.hurry .timer-fill { background: linear-gradient(90deg, #fb7185, #f43f5e); }
+.timer-wrap.hurry .timer-num { color: var(--danger); animation: chipPulse .5s ease-in-out infinite; }
+.timer-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: clamp(.7rem, 2.6vw, .82rem); font-weight: 800; color: var(--ink-dim);
+    margin-bottom: 5px;
+}
+.timer-num { font-variant-numeric: tabular-nums; font-size: 1.05em; color: var(--ink); }
 
+/* メッセージ */
+.message-box {
+    padding: clamp(10px, 1.8vh, 16px) 14px;
+    text-align: center; min-height: 3.4em;
+    display: flex; justify-content: center; align-items: center;
+    font-size: clamp(.95rem, 3.6vw, 1.2rem); font-weight: 800; line-height: 1.5;
+}
+.message-box ruby rt { font-size: .55em; font-weight: 500; color: var(--ink-dim); }
+.message-box .accent { color: var(--accent); }
+.message-box.pop { animation: msgPop .35s ease; }
+@keyframes msgPop { 0% { transform: scale(.92); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
 
-       .vs { font-size: 2.5rem; font-family: 'Press Start 2P', cursive; }
+/* 入力エリア */
+.input-area { display: flex; gap: 8px; }
+#wordInput {
+    flex: 1; min-width: 0;
+    padding: clamp(12px, 2vh, 16px) 14px;
+    font-size: 16px; /* iOSズーム防止 */
+    border: 2px solid var(--panel-border); border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, .3); color: var(--ink);
+    font-family: var(--font-main); font-weight: 700; outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+#wordInput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(251,191,36,.2); }
+#wordInput:disabled { opacity: .55; }
 
+#mic-btn {
+    width: clamp(48px, 12vw, 56px); flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--panel-border);
+    background: var(--panel-strong); color: var(--ink);
+    font-size: 1.35rem; cursor: pointer; display: none;
+    transition: all .2s; position: relative;
+}
+#mic-btn.supported { display: block; }
+#mic-btn.listening {
+    border-color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 30%, transparent);
+    animation: micPulse 1s ease-in-out infinite;
+}
+@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, .55); } 50% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); } }
+#mic-btn:disabled { opacity: .45; cursor: default; }
 
-       .message-box {
-           padding: 1rem;
-           text-align: center;
-           min-height: 80px;
-           display: flex;
-           justify-content: center;
-           align-items: center;
-           margin-bottom: 1rem;
-           font-size: 1.2rem;
-           font-weight: 800;
-       }
-       .message-box ruby rt { font-size: 0.8rem; font-weight: 500; }
-      
-       .timer { font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem; text-align: center; }
-       .timer ruby rt { font-size: 0.9rem; font-weight: 500; }
+#submitBtn {
+    flex-shrink: 0; padding: 0 clamp(14px, 4vw, 26px);
+    font-family: var(--font-game);
+    font-size: clamp(.95rem, 3.6vw, 1.15rem);
+    background: linear-gradient(45deg, #fbbf24, #f97316);
+    color: #fff; border: none; border-radius: var(--radius-sm);
+    cursor: pointer; text-shadow: 0 1px 2px rgba(120, 50, 0, .5);
+    box-shadow: 0 4px 0 #b45309;
+    transition: transform .1s, box-shadow .1s, opacity .2s;
+    white-space: nowrap;
+}
+#submitBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b45309; }
+#submitBtn:disabled { opacity: .5; transform: none; }
 
+/* 履歴 */
+.history-area {
+    padding: 10px 12px;
+    max-height: clamp(74px, 15vh, 150px);
+    overflow-y: auto; overscroll-behavior: contain;
+    display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+}
+.history-item {
+    font-size: clamp(.75rem, 2.8vw, .88rem); font-weight: 700;
+    padding: 4px 10px; border-radius: 99px;
+    background: rgba(0,0,0,.25); border: 1.5px solid transparent;
+    display: inline-flex; align-items: center; gap: 6px;
+    animation: chipIn .3s ease;
+}
+@keyframes chipIn { from { transform: scale(.6); opacity: 0; } }
+.history-item.by-p1 { border-color: color-mix(in srgb, var(--p1) 60%, transparent); color: var(--p1-soft); }
+.history-item.by-p2 { border-color: color-mix(in srgb, var(--p2) 60%, transparent); color: var(--p2-soft); }
+.history-item .dmg-tag { font-size: .82em; color: var(--accent); }
 
-       .input-area { display: flex; gap: 0.5rem; }
-       #wordInput {
-           flex-grow: 1;
-           padding: 1rem;
-           font-size: 1.2rem;
-           border: 2px solid #fff;
-           border-radius: 0.5rem;
-           background-color: rgba(255, 255, 255, 0.5);
-           color: var(--dark-text);
-           font-family: 'M PLUS Rounded 1c', sans-serif;
-       }
-       #submitBtn {
-           padding: 1rem 1.5rem;
-           font-size: 1.2rem;
-           font-weight: 800;
-           background: linear-gradient(45deg, #feca57, #ff9f43);
-           color: #fff;
-           border: none;
-           border-radius: 0.5rem;
-           cursor: pointer;
-           transition: transform 0.2s, box-shadow 0.2s;
-       }
-       #submitBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 159, 67, 0.3); }
-      
-       .history-area { margin-top: 1rem; height: 100px; padding: 0.5rem; overflow-y: auto; }
-       .history-item { padding: 0.2rem 0.5rem; }
-       .history-item .player1-word { color: var(--player1-color); font-weight: 800; }
-       .history-item .player2-word { color: var(--player2-color); font-weight: 800; }
+/* 画面シェイク */
+@keyframes shakeX { 10%,50%,90% { transform: translateX(-7px); } 30%,70% { transform: translateX(7px); } }
+#game-screen.shake { animation: shakeX .45s ease-in-out; }
+@keyframes attackLungeR { 40% { transform: translateX(16px) scale(1.06); } }
+@keyframes attackLungeL { 40% { transform: translateX(-16px) scale(1.06); } }
+.player-card.attack-r { animation: attackLungeR .45s ease-in-out; }
+.player-card.attack-l { animation: attackLungeL .45s ease-in-out; }
+@keyframes hitFlash { 15%, 45% { filter: brightness(2) saturate(.3); } 30%, 60% { filter: none; } }
+.player-card.hit { animation: hitFlash .5s ease-in-out, shakeX .5s ease-in-out; }
 
+/* ターン開始バナー */
+#turn-banner {
+    position: fixed; inset: 0; z-index: 40;
+    display: none; align-items: center; justify-content: center;
+    pointer-events: none;
+}
+#turn-banner.show { display: flex; }
+#turn-banner .banner-inner {
+    font-family: var(--font-game);
+    font-size: clamp(1.5rem, 7vw, 2.6rem);
+    padding: .5em 1.2em; letter-spacing: .06em;
+    color: #fff; text-shadow: 0 3px 10px rgba(0,0,0,.6);
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, .65) 18%, rgba(0, 0, 0, .65) 82%, transparent);
+    animation: bannerSweep 1.1s cubic-bezier(.22, 1, .36, 1) forwards;
+    white-space: nowrap; max-width: 100vw; overflow: hidden; text-overflow: ellipsis;
+}
+@keyframes bannerSweep {
+    0% { transform: translateX(70vw); opacity: 0; }
+    22% { transform: translateX(0); opacity: 1; }
+    78% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(-70vw); opacity: 0; }
+}
 
-       /* ゲームオーバー画面 */
-       #game-over-screen {
-           position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-           background-color: rgba(0, 0, 0, 0.8);
-           display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 10;
-       }
-       #confetti-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
-       #game-over-message { font-size: 3rem; font-family: 'Press Start 2P', cursive; margin-bottom: 2rem; text-align: center; color: #fff; }
-       #restart-btn {
-           font-family: 'Press Start 2P', cursive; padding: 1rem 2rem; font-size: 1.2rem;
-           background: linear-gradient(45deg, #1dd1a1, #10ac84); color: #fff;
-           border: none; border-radius: 0.5rem; cursor: pointer;
-       }
-      
-       /* アニメーション */
-       @keyframes attack { 0% { transform: translateX(0); } 50% { transform: translateX(20px) scale(1.1); } 100% { transform: translateX(0); } }
-       .attack { animation: attack 0.5s ease-in-out; }
-       @keyframes damage { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
-       .damage { animation: damage 0.5s ease-in-out; }
+/* ================================================================
+   リザルト画面
+================================================================ */
+#result-screen {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(10, 6, 28, .88);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center;
+    padding: 16px;
+}
+#result-screen.show { display: flex; }
+.result-card {
+    width: min(480px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto;
+    text-align: center; padding: clamp(20px, 4vh, 34px) clamp(16px, 4vw, 28px);
+    animation: resultIn .55s cubic-bezier(.22, 1.4, .36, 1);
+}
+@keyframes resultIn { from { transform: scale(.6) translateY(40px); opacity: 0; } }
+.result-word {
+    font-family: var(--font-game); font-size: clamp(1.6rem, 7vw, 2.4rem);
+    color: var(--accent); text-shadow: 0 0 18px rgba(251,191,36,.55);
+    letter-spacing: .12em;
+}
+.winner-char { font-size: clamp(3.6rem, 15vw, 5.6rem); line-height: 1.2; margin: 8px 0 2px; display: inline-block; animation: winnerBounce 1s ease infinite; }
+@keyframes winnerBounce { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-12px) scale(1.06); } }
+.winner-name { font-size: clamp(1.1rem, 4.5vw, 1.5rem); font-weight: 800; margin-bottom: 4px; word-break: break-all; }
+.result-sub { color: var(--ink-dim); font-size: .9rem; margin-bottom: 14px; }
+.result-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin: 10px 0 18px;
+}
+.stat-tile { background: rgba(0,0,0,.28); border-radius: var(--radius-sm); padding: 10px 6px; }
+.stat-tile .stat-num { font-size: clamp(1.05rem, 4.4vw, 1.4rem); font-weight: 800; color: var(--accent); word-break: break-all; }
+.stat-tile .stat-label { font-size: .68rem; color: var(--ink-dim); font-weight: 700; margin-top: 2px; }
+.result-actions { display: grid; gap: 10px; }
+.result-actions button {
+    font-family: var(--font-game); padding: 14px;
+    font-size: clamp(1rem, 4vw, 1.2rem); border: none; border-radius: var(--radius-sm);
+    cursor: pointer; color: #fff; letter-spacing: .06em;
+    transition: transform .12s;
+}
+.result-actions button:active { transform: scale(.96); }
+#rematch-btn { background: linear-gradient(45deg, #34d399, #059669); box-shadow: 0 5px 0 #047857; }
+#home-btn { background: linear-gradient(45deg, #818cf8, #6366f1); box-shadow: 0 5px 0 #4338ca; }
 
-
-       /* スマートフォン向けレスポンシブ対応 */
-       @media (max-width: 600px) {
-           .glass-panel { padding: 1.5rem; }
-           .game-title { font-size: 1.5rem; -webkit-text-stroke: 1px var(--dark-text); }
-           .player-character { font-size: 3.5rem; }
-           .player-name { font-size: 1rem; }
-           .vs { font-size: 1.8rem; }
-           .message-box, #wordInput, #submitBtn { font-size: 1rem; }
-           .input-area { flex-direction: column; }
-           #game-over-message { font-size: 1.8rem; }
-           #restart-btn { font-size: 1rem; }
-       }
-   </style>
+/* ================================================================
+   レスポンシブ微調整 / モーション配慮
+================================================================ */
+@media (min-width: 700px) and (min-height: 700px) {
+    #game-screen { justify-content: center; gap: 18px; }
+}
+@media (max-height: 620px) {
+    .app-header { padding-bottom: 2px; }
+    .history-area { max-height: 60px; }
+    .message-box { min-height: 2.6em; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .15s !important; }
+    #fx-canvas { display: none; }
+}
+</style>
 </head>
 <body>
 
+<div class="bg-arena" aria-hidden="true"></div>
+<canvas id="fx-canvas" aria-hidden="true"></canvas>
 
-   <div class="container">
-       <!-- セットアップ画面 -->
-       <div id="setup-screen" class="glass-panel">
-           <h1 class="game-title">しりとりファイター</h1>
-           <div class="player-setup p1">
-               <h2>PLAYER 1</h2>
-               <input type="text" id="p1-name" placeholder="名前を入力してね" maxlength="10">
-               <div class="character-selection" id="p1-chars"></div>
-           </div>
-           <div class="player-setup p2">
-               <h2>PLAYER 2</h2>
-               <input type="text" id="p2-name" placeholder="名前を入力してね" maxlength="10">
-               <div class="character-selection" id="p2-chars"></div>
-           </div>
-           <div class="game-settings">
-               <div class="setting-item">
-                   <label for="initial-hp">HP</label>
-                   <input type="number" id="initial-hp" value="50" min="10">
-               </div>
-               <div class="setting-item">
-                   <label for="timer-duration">タイマー(秒)</label>
-                   <input type="number" id="timer-duration" value="20" min="5">
-               </div>
-           </div>
-           <button id="start-game-btn"><ruby>ゲーム<rt>GAME</rt></ruby><ruby>開始<rt>かいし</rt></ruby>！</button>
-       </div>
+<div class="app">
+    <header class="app-header">
+        <div class="app-logo"><span class="bolt">⚡</span>しりとりファイター</div>
+        <div class="header-actions">
+            <button id="install-btn" type="button" title="アプリとしてインストール">📲 インストール</button>
+            <button id="sound-btn" class="icon-btn" type="button" aria-label="サウンド切り替え">🔊</button>
+        </div>
+    </header>
 
+    <!-- ============ セットアップ画面 ============ -->
+    <section id="setup-screen" class="screen active" aria-label="ゲーム設定">
+        <div class="title-hero">
+            <span class="hero-mark">⚔️</span>
+            <h1>しりとりファイター</h1>
+            <p>ことばで<ruby>戦<rt>たたか</rt></ruby>え！<ruby>声<rt>こえ</rt></ruby>でも<ruby>遊<rt>あそ</rt></ruby>べる しりとりバトル</p>
+        </div>
 
-       <!-- ゲーム画面 -->
-       <div id="game-screen">
-           <h1 class="game-title">しりとりファイター</h1>
-           <main>
-               <div class="game-board">
-                   <div class="player-card p1 glass-panel" id="player1-card">
-                       <span class="player-label">P1</span>
-                       <div class="player-character" id="player1-char"></div>
-                       <div class="player-name" id="player1-name"></div>
-                       <div class="hp-bar-container">
-                           <div class="hp-bar" id="player1-hp"></div>
-                       </div>
-                   </div>
-                   <div class="vs">VS</div>
-                   <div class="player-card p2 glass-panel" id="player2-card">
-                       <span class="player-label">P2</span>
-                       <div class="player-character" id="player2-char"></div>
-                       <div class="player-name" id="player2-name"></div>
-                       <div class="hp-bar-container">
-                           <div class="hp-bar" id="player2-hp"></div>
-                       </div>
-                   </div>
-               </div>
-               <div class="message-box glass-panel" id="message-box"></div>
-               <div class="timer" id="timer"></div>
-               <form class="input-area" id="wordForm">
-                   <input type="text" id="wordInput" placeholder="言葉を入力..." autocomplete="off">
-                   <button type="submit" id="submitBtn"><ruby>攻撃<rt>こうげき</rt></ruby>！</button>
-               </form>
-               <div class="history-area glass-panel" id="history-area"></div>
-           </main>
-       </div>
-      
-       <!-- ゲームオーバー画面 -->
-       <div id="game-over-screen">
-           <canvas id="confetti-canvas"></canvas>
-           <div id="game-over-message"></div>
-           <button id="restart-btn">もう<ruby>一度<rt>いちど</rt></ruby>！</button>
-       </div>
-   </div>
+        <div class="setup-card panel">
+            <div class="setup-section-label">あそびかた</div>
+            <div class="mode-tabs" role="radiogroup" aria-label="対戦モード">
+                <button type="button" class="mode-tab selected" data-mode="pvp" role="radio" aria-checked="true">
+                    <span class="mode-icon">🧑‍🤝‍🧑</span>ふたりで<ruby>対戦<rt>たいせん</rt></ruby>
+                </button>
+                <button type="button" class="mode-tab" data-mode="cpu" role="radio" aria-checked="false">
+                    <span class="mode-icon">🤖</span>コンピュータと<ruby>対戦<rt>たいせん</rt></ruby>
+                </button>
+            </div>
+        </div>
 
+        <div class="players-setup">
+            <div class="player-setup p1 panel">
+                <h2>PLAYER 1</h2>
+                <input type="text" id="p1-name" placeholder="なまえを入力してね" maxlength="10" autocomplete="off">
+                <div class="character-selection" id="p1-chars" aria-label="プレイヤー1のキャラクター"></div>
+            </div>
+            <div class="player-setup p2 panel" id="p2-setup">
+                <h2 id="p2-setup-title">PLAYER 2</h2>
+                <input type="text" id="p2-name" placeholder="なまえを入力してね" maxlength="10" autocomplete="off">
+                <div class="character-selection" id="p2-chars" aria-label="プレイヤー2のキャラクター"></div>
+                <div id="cpu-level-wrap">
+                    <div class="setup-section-label" style="margin-top:4px;">つよさ</div>
+                    <div class="seg-group" id="cpu-level" role="radiogroup" aria-label="コンピュータの強さ">
+                        <button type="button" class="seg-btn" data-level="easy">やさしい</button>
+                        <button type="button" class="seg-btn selected" data-level="normal">ふつう</button>
+                        <button type="button" class="seg-btn" data-level="hard">つよい</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-   <script>
-   class ShiritoriFighterGame {
-       constructor() {
-           this.elements = this.getDOMElements();
-           this.availableCharacters = ['🦸‍♂️', '🦸‍♀️', '🧑', '🐱', '🐶', '🐻', '🦁', '🐯', '🐒', '🦍', '🤖', '👻', '👽', '🐲', '🦄', '🦖'];
-           this.gameState = {};
-           this.confetti = {
-               animationId: null,
-               particles: [],
-               colors: ["#ff6b6b", "#48dbfb", "#feca57", "#1dd1a1", "#ff9ff3", "#54a0ff"],
-           };
-           this.initialize();
-       }
+        <div class="setup-card panel">
+            <div class="game-settings">
+                <div class="setting-item">
+                    <label>たいりょく (HP)</label>
+                    <div class="seg-group" id="hp-select" role="radiogroup" aria-label="初期HP">
+                        <button type="button" class="seg-btn" data-hp="30">30</button>
+                        <button type="button" class="seg-btn selected" data-hp="50">50</button>
+                        <button type="button" class="seg-btn" data-hp="100">100</button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label>こたえる<ruby>時間<rt>じかん</rt></ruby> (<ruby>秒<rt>びょう</rt></ruby>)</label>
+                    <div class="seg-group" id="time-select" role="radiogroup" aria-label="制限時間">
+                        <button type="button" class="seg-btn" data-time="10">10</button>
+                        <button type="button" class="seg-btn selected" data-time="20">20</button>
+                        <button type="button" class="seg-btn" data-time="30">30</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <button id="start-game-btn" type="button">バトルスタート！</button>
+    </section>
 
-       // 1. 初期化とイベントリスナー設定
-       // =================================================================================
-       getDOMElements() {
-           return {
-               setupScreen: document.getElementById('setup-screen'),
-               gameScreen: document.getElementById('game-screen'),
-               p1NameInput: document.getElementById('p1-name'),
-               p2NameInput: document.getElementById('p2-name'),
-               p1CharSelection: document.getElementById('p1-chars'),
-               p2CharSelection: document.getElementById('p2-chars'),
-               startGameBtn: document.getElementById('start-game-btn'),
-               initialHpInput: document.getElementById('initial-hp'),
-               timerDurationInput: document.getElementById('timer-duration'),
-               players: [
-                   { card: document.getElementById('player1-card'), nameEl: document.getElementById('player1-name'), charEl: document.getElementById('player1-char'), hpEl: document.getElementById('player1-hp') },
-                   { card: document.getElementById('player2-card'), nameEl: document.getElementById('player2-name'), charEl: document.getElementById('player2-char'), hpEl: document.getElementById('player2-hp') }
-               ],
-               messageBox: document.getElementById('message-box'),
-               timerEl: document.getElementById('timer'),
-               wordForm: document.getElementById('wordForm'),
-               wordInput: document.getElementById('wordInput'),
-               historyArea: document.getElementById('history-area'),
-               gameOverScreen: document.getElementById('game-over-screen'),
-               gameOverMessage: document.getElementById('game-over-message'),
-               restartBtn: document.getElementById('restart-btn'),
-               confettiCanvas: document.getElementById('confetti-canvas'),
-           };
-       }
+    <!-- ============ バトル画面 ============ -->
+    <section id="game-screen" class="screen" aria-label="バトル">
+        <div class="battle-hud">
+            <div class="player-card p1 panel" id="player1-card">
+                <span class="player-label">P1</span>
+                <span class="turn-chip" aria-hidden="true">⚡</span>
+                <div class="player-character" id="player1-char"></div>
+                <div class="player-name" id="player1-name"></div>
+                <div class="hp-row">
+                    <div class="hp-bar-container"><div class="hp-bar" id="player1-hp"></div></div>
+                    <span class="hp-num" id="player1-hp-num"></span>
+                </div>
+            </div>
+            <div class="vs-block"><span class="vs">VS</span></div>
+            <div class="player-card p2 panel" id="player2-card">
+                <span class="player-label">P2</span>
+                <span class="turn-chip" aria-hidden="true">⚡</span>
+                <div class="player-character" id="player2-char"></div>
+                <div class="player-name" id="player2-name"></div>
+                <div class="hp-row">
+                    <div class="hp-bar-container"><div class="hp-bar" id="player2-hp"></div></div>
+                    <span class="hp-num" id="player2-hp-num"></span>
+                </div>
+            </div>
+        </div>
 
+        <div class="quest-zone">
+            <div class="next-char-disc" id="next-char-disc" aria-live="polite">あ</div>
+            <div class="quest-text">
+                <div class="q-label">つぎの<ruby>文字<rt>もじ</rt></ruby>からスタート！</div>
+                <div class="q-turn" id="turn-indicator"></div>
+            </div>
+        </div>
 
-       initialize() {
-           this.setupEventListeners();
-           this.resetGameState();
-           this.populateCharacterSelections();
-           this.setupCharacterSelection(this.elements.p1CharSelection, 0);
-           this.setupCharacterSelection(this.elements.p2CharSelection, 1);
-       }
-      
-       setupEventListeners() {
-           this.elements.startGameBtn.addEventListener('click', this.startGame.bind(this));
-           this.elements.wordForm.addEventListener('submit', (e) => {
-               e.preventDefault();
-               this.submitWord();
-           });
-           this.elements.restartBtn.addEventListener('click', this.restartGame.bind(this));
-       }
+        <div class="timer-wrap panel" id="timer-wrap">
+            <div class="timer-meta">
+                <span>のこり<ruby>時間<rt>じかん</rt></ruby></span>
+                <span class="timer-num" id="timer-num"></span>
+            </div>
+            <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+        </div>
 
+        <div class="message-box panel" id="message-box" aria-live="polite"></div>
 
-       // 2. ゲーム状態管理
-       // =================================================================================
-       resetGameState() {
-           const hiraganaChars = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわ'.split('');
-           const randomStartChar = hiraganaChars[Math.floor(Math.random() * hiraganaChars.length)];
-           const initialHp = parseInt(this.elements.initialHpInput.value, 10) || 50;
-           const baseTimer = parseInt(this.elements.timerDurationInput.value, 10) || 20;
+        <form class="input-area" id="wordForm">
+            <input type="text" id="wordInput" placeholder="ことばを入力…" autocomplete="off"
+                   autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send"
+                   aria-label="ことばを入力">
+            <button type="button" id="mic-btn" aria-label="声で入力" title="声で入力">🎤</button>
+            <button type="submit" id="submitBtn">こうげき！</button>
+        </form>
 
+        <div class="history-area panel" id="history-area" aria-label="使ったことば" aria-live="polite"></div>
+    </section>
 
-           this.gameState = {
-               players: [
-                   { name: "プレイヤー1", char: "🦸‍♂️", hp: initialHp, maxHp: initialHp },
-                   { name: "プレイヤー2", char: "🦸‍♀️", hp: initialHp, maxHp: initialHp }
-               ],
-               currentPlayerIndex: 0,
-               nextChar: randomStartChar,
-               usedWords: [],
-               baseTimer: baseTimer,
-               timerInterval: null,
-               isGameOver: false,
-           };
-       }
+    <!-- ターン開始バナー -->
+    <div id="turn-banner" aria-hidden="true"><div class="banner-inner" id="turn-banner-text"></div></div>
 
+    <!-- ============ リザルト画面 ============ -->
+    <div id="result-screen" role="dialog" aria-modal="true" aria-label="バトル結果">
+        <div class="result-card panel">
+            <div class="result-word" id="result-word">WIN!</div>
+            <div class="winner-char" id="winner-char">🏆</div>
+            <div class="winner-name" id="winner-name"></div>
+            <div class="result-sub" id="result-sub"></div>
+            <div class="result-stats">
+                <div class="stat-tile"><div class="stat-num" id="stat-words">0</div><div class="stat-label">つかったことば</div></div>
+                <div class="stat-tile"><div class="stat-num" id="stat-maxdmg">-</div><div class="stat-label">さいだいダメージ</div></div>
+                <div class="stat-tile"><div class="stat-num" id="stat-time">0:00</div><div class="stat-label">バトル<ruby>時間<rt>じかん</rt></ruby></div></div>
+            </div>
+            <div class="result-actions">
+                <button id="rematch-btn" type="button">もういちど！</button>
+                <button id="home-btn" type="button">せっていにもどる</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-       // 3. セットアップ画面ロジック
-       // =================================================================================
-       populateCharacterSelections() {
-           const createOptions = (char) => `<span class="char-option" data-char="${char}">${char}</span>`;
-           const optionsHTML = this.availableCharacters.map(createOptions).join('');
-           this.elements.p1CharSelection.innerHTML = optionsHTML;
-           this.elements.p2CharSelection.innerHTML = optionsHTML;
-       }
+<script>
+'use strict';
 
+/* ================================================================
+   かな変換ユーティリティ (外部ライブラリ不要・オフライン対応)
+================================================================ */
+const Kana = (() => {
+    // ローマ字 → ひらがな 変換テーブル (長いキー優先でマッチ)
+    const R = {
+        kya:'きゃ',kyu:'きゅ',kyo:'きょ',gya:'ぎゃ',gyu:'ぎゅ',gyo:'ぎょ',
+        sha:'しゃ',shu:'しゅ',sho:'しょ',sya:'しゃ',syu:'しゅ',syo:'しょ',
+        ja:'じゃ',ju:'じゅ',jo:'じょ',jya:'じゃ',jyu:'じゅ',jyo:'じょ',zya:'じゃ',zyu:'じゅ',zyo:'じょ',
+        cha:'ちゃ',chu:'ちゅ',cho:'ちょ',tya:'ちゃ',tyu:'ちゅ',tyo:'ちょ',
+        nya:'にゃ',nyu:'にゅ',nyo:'にょ',hya:'ひゃ',hyu:'ひゅ',hyo:'ひょ',
+        bya:'びゃ',byu:'びゅ',byo:'びょ',pya:'ぴゃ',pyu:'ぴゅ',pyo:'ぴょ',
+        mya:'みゃ',myu:'みゅ',myo:'みょ',rya:'りゃ',ryu:'りゅ',ryo:'りょ',
+        shi:'し',chi:'ち',tsu:'つ',
+        ka:'か',ki:'き',ku:'く',ke:'け',ko:'こ',ga:'が',gi:'ぎ',gu:'ぐ',ge:'げ',go:'ご',
+        sa:'さ',si:'し',su:'す',se:'せ',so:'そ',za:'ざ',ji:'じ',zi:'じ',zu:'ず',ze:'ぜ',zo:'ぞ',
+        ta:'た',ti:'ち',tu:'つ',te:'て',to:'と',da:'だ',di:'ぢ',du:'づ',de:'で',do:'ど',
+        na:'な',ni:'に',nu:'ぬ',ne:'ね',no:'の',
+        ha:'は',hi:'ひ',fu:'ふ',hu:'ふ',he:'へ',ho:'ほ',
+        ba:'ば',bi:'び',bu:'ぶ',be:'べ',bo:'ぼ',pa:'ぱ',pi:'ぴ',pu:'ぷ',pe:'ぺ',po:'ぽ',
+        ma:'ま',mi:'み',mu:'む',me:'め',mo:'も',
+        ya:'や',yu:'ゆ',yo:'よ',ra:'ら',ri:'り',ru:'る',re:'れ',ro:'ろ',
+        wa:'わ',wo:'を',fa:'ふぁ',fi:'ふぃ',fe:'ふぇ',fo:'ふぉ',
+        va:'ゔぁ',vi:'ゔぃ',vu:'ゔ',ve:'ゔぇ',vo:'ゔぉ',
+        a:'あ',i:'い',u:'う',e:'え',o:'お',
+        nn:'ん','n\'':'ん','-':'ー'
+    };
+    const VOWELS = 'aiueo';
 
-       setupCharacterSelection(container, playerIndex) {
-           container.addEventListener('click', (e) => {
-               if (e.target.classList.contains('char-option')) {
-                   container.querySelectorAll('.char-option').forEach(opt => opt.classList.remove('selected'));
-                   e.target.classList.add('selected');
-                   this.gameState.players[playerIndex].char = e.target.dataset.char;
-               }
-           });
-       }
-      
-       // 4. ゲームのコアロジック
-       // =================================================================================
-       startGame() {
-           this.resetGameState(); // 設定値を反映させるために再度リセット
-           const p1Name = this.elements.p1NameInput.value.trim();
-           const p2Name = this.elements.p2NameInput.value.trim();
-           if (p1Name) this.gameState.players[0].name = p1Name;
-           if (p2Name) this.gameState.players[1].name = p2Name;
+    function romajiToHiragana(src) {
+        let s = src.toLowerCase(), out = '', i = 0;
+        while (i < s.length) {
+            // 促音: 子音の連続 (nn以外)
+            if (i + 1 < s.length && s[i] === s[i + 1] && !VOWELS.includes(s[i]) && s[i] !== 'n' && /[a-z]/.test(s[i])) {
+                out += 'っ'; i++; continue;
+            }
+            // 「ん」: n の後に子音 or 文末
+            if (s[i] === 'n' && (i + 1 >= s.length || (!VOWELS.includes(s[i + 1]) && s[i + 1] !== 'y' && s[i + 1] !== 'n' && s[i + 1] !== '\''))) {
+                out += 'ん'; i++; continue;
+            }
+            let matched = false;
+            for (const len of [3, 2, 1]) {
+                const chunk = s.slice(i, i + len);
+                if (R[chunk]) { out += R[chunk]; i += len; matched = true; break; }
+            }
+            if (!matched) { out += s[i]; i++; }
+        }
+        return out;
+    }
 
+    function toHiragana(input) {
+        let s = (input || '').trim().normalize('NFKC');
+        if (/[a-zA-Z]/.test(s)) s = romajiToHiragana(s);
+        // カタカナ → ひらがな (ヴ含む)
+        s = s.replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+        return s;
+    }
 
-           this.elements.setupScreen.style.display = 'none';
-           this.elements.gameScreen.style.display = 'block';
+    const isValidWord = s => /^[ぁ-ゔー]+$/.test(s);
 
+    // 小書き文字 → 通常文字 (しりとりの次の文字用)
+    const SMALL = { 'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','っ':'つ','ゃ':'や','ゅ':'ゆ','ょ':'よ','ゎ':'わ' };
 
-           this.gameState.isGameOver = false;
-           this.updateDisplay();
-           this.showMessage(`「${this.gameState.nextChar}」から<ruby>始<rt>はじ</rt></ruby>まる<ruby>言葉<rt>ことば</rt></ruby>を<ruby>入力<rt>にゅうりょく</rt></ruby>してね！`);
-           this.startTimer();
-           this.elements.wordInput.focus();
-       }
+    function nextChar(word) {
+        // 末尾の長音符を(連続していても)読み飛ばす
+        let i = word.length - 1;
+        while (i > 0 && word[i] === 'ー') i--;
+        const c = word[i];
+        return SMALL[c] || c;
+    }
 
+    return { toHiragana, isValidWord, nextChar };
+})();
 
-       submitWord() {
-           const rawWord = this.elements.wordInput.value.trim();
-           if (rawWord === '' || this.gameState.isGameOver) return;
+/* ================================================================
+   CPU用ことば辞書 (小学生向けの一般名詞・「ん」で終わる語なし)
+================================================================ */
+const CPU_DICT = {
+    'あ': ['あり', 'あめ', 'あさがお', 'あいすくりーむ', 'あしか', 'あくしゅ'],
+    'い': ['いぬ', 'いちご', 'いるか', 'いす', 'いのしし', 'いちょう'],
+    'う': ['うさぎ', 'うみ', 'うた', 'うちわ', 'うぐいす', 'うきわ'],
+    'え': ['えんぴつ', 'えび', 'えほん', 'えだまめ', 'えがお', 'えき'],
+    'お': ['おにぎり', 'おかし', 'おもちゃ', 'おんがく', 'おはじき', 'おてだま'],
+    'か': ['かめ', 'かさ', 'かぼちゃ', 'かみなり', 'かるた', 'かき'],
+    'き': ['きつね', 'きりん', 'きのこ', 'きって', 'きゅうり', 'きしゃ'],
+    'く': ['くま', 'くじら', 'くつ', 'くり', 'くるま', 'くじゃく'],
+    'け': ['けむし', 'けしごむ', 'けいと', 'けやき', 'けいさつ', 'けーき'],
+    'こ': ['こあら', 'こま', 'ことり', 'こおり', 'こたつ', 'こむぎ'],
+    'が': ['がっこう', 'がけ', 'がちょう', 'がいこつ', 'がらす'],
+    'ぎ': ['ぎんこう', 'ぎたー', 'ぎょうざ', 'ぎんが'],
+    'ぐ': ['ぐろーぶ', 'ぐみ', 'ぐんて', 'ぐらす'],
+    'げ': ['げた', 'げーむ', 'げじげじ', 'げつようび'],
+    'ご': ['ごりら', 'ごま', 'ごぼう', 'ごむ'],
+    'さ': ['さくら', 'さかな', 'さる', 'さいころ', 'さつまいも', 'さら'],
+    'し': ['しか', 'しまうま', 'しりとり', 'しお', 'しっぽ', 'しゃぼんだま'],
+    'す': ['すいか', 'すずめ', 'すし', 'すな', 'すべりだい', 'すみれ'],
+    'せ': ['せみ', 'せかい', 'せーたー', 'せんべい', 'せなか'],
+    'そ': ['そら', 'そば', 'そうじき', 'そり', 'そふとくりーむ'],
+    'ざ': ['ざりがに', 'ざる', 'ざっし', 'ざくろ'],
+    'じ': ['じてんしゃ', 'じゃがいも', 'じしゃく', 'じどうしゃ'],
+    'ず': ['ずこう', 'ずけい'],
+    'ぜ': ['ぜりー', 'ぜんまい'],
+    'ぞ': ['ぞう', 'ぞうり', 'ぞうすい'],
+    'た': ['たぬき', 'たいこ', 'たまご', 'たこ', 'たけのこ', 'たんぽぽ'],
+    'ち': ['ちず', 'ちくわ', 'ちょこれーと', 'ちりとり', 'ちきゅう', 'ちーず'],
+    'つ': ['つき', 'つくえ', 'つばめ', 'つみき', 'つる', 'つりざお'],
+    'て': ['てぶくろ', 'てがみ', 'てんとうむし', 'てつぼう', 'てるてるぼうず'],
+    'と': ['とけい', 'とまと', 'とんぼ', 'とら', 'とうもろこし', 'とびばこ'],
+    'だ': ['だるま', 'だちょう', 'だんご', 'だいず'],
+    'で': ['でんしゃ', 'でんわ', 'でこぼこ', 'でんき', 'でぐち'],
+    'ど': ['どーなつ', 'どんぐり', 'どらむ', 'どろだんご', 'どうぶつ'],
+    'な': ['なす', 'なつ', 'なわとび', 'なべ', 'なし', 'なまえ'],
+    'に': ['にじ', 'にわとり', 'にもつ', 'にんぎょう', 'におい'],
+    'ぬ': ['ぬいぐるみ', 'ぬま', 'ぬりえ', 'ぬの'],
+    'ね': ['ねこ', 'ねずみ', 'ねぎ', 'ねんど', 'ねっこ'],
+    'の': ['のり', 'のこぎり', 'のはら', 'のど', 'のりもの'],
+    'は': ['はさみ', 'はな', 'はち', 'はしご', 'はくちょう', 'はっぱ'],
+    'ひ': ['ひこうき', 'ひまわり', 'ひつじ', 'ひよこ', 'ひげ', 'ひやしんす'],
+    'ふ': ['ふえ', 'ふくろう', 'ふゆ', 'ふろ', 'ふでばこ'],
+    'へ': ['へび', 'へや', 'へちま', 'へそ', 'へりこぷたー'],
+    'ほ': ['ほし', 'ほうき', 'ほたる', 'ほっとけーき', 'ほうれんそう'],
+    'ば': ['ばなな', 'ばった', 'ばけつ', 'ばら', 'ばしょ'],
+    'び': ['びーだま', 'びわ', 'びすけっと', 'びっくりばこ'],
+    'ぶ': ['ぶどう', 'ぶた', 'ぶらんこ', 'ぶんぼうぐ'],
+    'べ': ['べんとう', 'べる', 'べすと'],
+    'ぼ': ['ぼうし', 'ぼーる', 'ぼんおどり', 'ぼたもち'],
+    'ぱ': ['ぱんだ', 'ぱいなっぷる', 'ぱとかー', 'ぱじゃま', 'ぱれっと'],
+    'ぴ': ['ぴあの', 'ぴえろ', 'ぴくにっく'],
+    'ぷ': ['ぷーる', 'ぷれぜんと', 'ぷらもでる'],
+    'ぺ': ['ぺんき', 'ぺだる', 'ぺんち', 'ぺーじ'],
+    'ぽ': ['ぽけっと', 'ぽすと', 'ぽんぷ'],
+    'ま': ['まくら', 'まど', 'まつり', 'まめ', 'まほう', 'まんが'],
+    'み': ['みず', 'みみず', 'みどり', 'みそしる', 'みつばち'],
+    'む': ['むし', 'むぎちゃ', 'むらさき', 'むかで', 'むぎわらぼうし'],
+    'め': ['めがね', 'めだか', 'めじろ', 'めいろ', 'めざましどけい'],
+    'も': ['もも', 'もぐら', 'もみじ', 'もち', 'もり'],
+    'や': ['やま', 'やさい', 'やぎ', 'やきいも', 'やね'],
+    'ゆ': ['ゆき', 'ゆびわ', 'ゆかた', 'ゆめ', 'ゆず', 'ゆりかご'],
+    'よ': ['よる', 'よっと', 'ようふく', 'よこづな', 'よーぐると'],
+    'ら': ['らっぱ', 'らくだ', 'らむね', 'らっこ', 'らじお'],
+    'り': ['りんご', 'りす', 'りゅう', 'りれー', 'りっとる'],
+    'る': ['るびー', 'るーれっと', 'るーぺ', 'るすばんでんわ'],
+    'れ': ['れいぞうこ', 'れたす', 'れきし', 'れんが'],
+    'ろ': ['ろうそく', 'ろぼっと', 'ろば', 'ろけっと', 'ろっかー'],
+    'わ': ['わに', 'わた', 'わかめ', 'わなげ', 'わがし', 'わりばし'],
+};
 
+/* ================================================================
+   効果音 (WebAudioで合成・音源ファイル不要)
+================================================================ */
+class SFX {
+    constructor() {
+        this.ctx = null;
+        this.muted = localStorage.getItem('sf-muted') === '1';
+    }
+    ensure() {
+        if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            this.ctx = new AC();
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+    }
+    setMuted(m) { this.muted = m; localStorage.setItem('sf-muted', m ? '1' : '0'); }
+    tone({ freq = 440, type = 'sine', dur = .15, vol = .2, delay = 0, slide = 0 }) {
+        const ctx = this.ensure();
+        if (!ctx || this.muted) return;
+        const t0 = ctx.currentTime + delay;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t0 + dur);
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(vol, t0 + .012);
+        g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(t0); osc.stop(t0 + dur + .05);
+    }
+    noise({ dur = .18, vol = .18, delay = 0, freq = 1200 }) {
+        const ctx = this.ensure();
+        if (!ctx || this.muted) return;
+        const t0 = ctx.currentTime + delay;
+        const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(vol, t0);
+        g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+        src.connect(filter).connect(g).connect(ctx.destination);
+        src.start(t0);
+    }
+    click()   { this.tone({ freq: 880, type: 'triangle', dur: .07, vol: .12 }); }
+    select()  { this.tone({ freq: 660, type: 'triangle', dur: .09, vol: .14 }); this.tone({ freq: 990, type: 'triangle', dur: .1, vol: .12, delay: .06 }); }
+    attack()  { this.tone({ freq: 300, type: 'sawtooth', dur: .12, vol: .16, slide: 700 }); this.noise({ dur: .16, vol: .22, delay: .08, freq: 2400 }); this.tone({ freq: 160, type: 'square', dur: .18, vol: .18, delay: .09, slide: -80 }); }
+    damage()  { this.tone({ freq: 140, type: 'square', dur: .25, vol: .2, slide: -70 }); this.noise({ dur: .2, vol: .15, freq: 700 }); }
+    error()   { this.tone({ freq: 220, type: 'square', dur: .12, vol: .14 }); this.tone({ freq: 175, type: 'square', dur: .18, vol: .14, delay: .1 }); }
+    tick()    { this.tone({ freq: 1200, type: 'sine', dur: .05, vol: .1 }); }
+    timeup()  { this.tone({ freq: 320, type: 'sawtooth', dur: .3, vol: .18, slide: -180 }); this.tone({ freq: 240, type: 'sawtooth', dur: .4, vol: .16, delay: .18, slide: -140 }); }
+    start()   { [523, 659, 784, 1047].forEach((f, i) => this.tone({ freq: f, type: 'triangle', dur: .16, vol: .16, delay: i * .1 })); }
+    win()     { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => this.tone({ freq: f, type: 'triangle', dur: .2, vol: .17, delay: i * .13 })); }
+    micOn()   { this.tone({ freq: 660, type: 'sine', dur: .1, vol: .14 }); this.tone({ freq: 880, type: 'sine', dur: .12, vol: .14, delay: .09 }); }
+}
 
-           // カタカナや漢字をひらがなに自動変換
-           const hiraganaWord = wanakana.toHiragana(rawWord, { passRomaji: false });
+/* ================================================================
+   演出 (紙吹雪・ヒットパーティクル)
+================================================================ */
+class FxCanvas {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.particles = [];
+        this.confettiOn = false;
+        this.running = false;
+        this.colors = ['#ff5e7d', '#38bdf8', '#fbbf24', '#34d399', '#f472b6', '#a78bfa'];
+        this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    }
+    resize() {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        this.canvas.width = window.innerWidth * dpr;
+        this.canvas.height = window.innerHeight * dpr;
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.w = window.innerWidth; this.h = window.innerHeight;
+    }
+    burst(x, y, color, count = 18) {
+        if (this.reduced) return;
+        for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = 2 + Math.random() * 5;
+            this.particles.push({
+                kind: 'spark', x, y,
+                vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2,
+                size: 3 + Math.random() * 5, life: 1,
+                decay: .02 + Math.random() * .02,
+                color: color || this.colors[Math.floor(Math.random() * this.colors.length)],
+            });
+        }
+        this.run();
+    }
+    startConfetti() {
+        if (this.reduced) return;
+        this.confettiOn = true;
+        for (let i = 0; i < 130; i++) this.particles.push(this.makeConfetto(true));
+        this.run();
+    }
+    stopConfetti() { this.confettiOn = false; }
+    makeConfetto(scatterY = false) {
+        return {
+            kind: 'confetti',
+            x: Math.random() * this.w,
+            y: scatterY ? Math.random() * -this.h : -20,
+            vx: (Math.random() - .5) * 1.6,
+            vy: 2 + Math.random() * 3,
+            size: 6 + Math.random() * 8,
+            angle: Math.random() * Math.PI * 2,
+            spin: (Math.random() - .5) * .25,
+            sway: Math.random() * Math.PI * 2,
+            color: this.colors[Math.floor(Math.random() * this.colors.length)],
+            life: 1, decay: 0,
+        };
+    }
+    run() {
+        if (this.running) return;
+        this.running = true;
+        const step = () => {
+            const ctx = this.ctx;
+            ctx.clearRect(0, 0, this.w, this.h);
+            this.particles = this.particles.filter(p => {
+                if (p.kind === 'spark') {
+                    p.x += p.vx; p.y += p.vy; p.vy += .18;
+                    p.life -= p.decay;
+                    if (p.life <= 0) return false;
+                    ctx.globalAlpha = Math.max(0, p.life);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    return true;
+                }
+                // confetti
+                p.sway += .06;
+                p.x += p.vx + Math.sin(p.sway) * 1.2;
+                p.y += p.vy;
+                p.angle += p.spin;
+                if (p.y > this.h + 30) {
+                    if (this.confettiOn) { Object.assign(p, this.makeConfetto()); return true; }
+                    return false;
+                }
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+                ctx.restore();
+                return true;
+            });
+            if (this.particles.length > 0) {
+                this.raf = requestAnimationFrame(step);
+            } else {
+                this.running = false;
+                ctx.clearRect(0, 0, this.w, this.h);
+            }
+        };
+        this.raf = requestAnimationFrame(step);
+    }
+}
 
+/* ================================================================
+   音声入力 (Web Speech API)
+================================================================ */
+class VoiceInput {
+    constructor({ onInterim, onFinal, onStateChange, onError }) {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.supported = !!SR;
+        this.listening = false;
+        if (!SR) return;
+        this.rec = new SR();
+        this.rec.lang = 'ja-JP';
+        this.rec.interimResults = true;
+        this.rec.maxAlternatives = 5;
+        this.rec.continuous = false;
+        this.rec.onresult = (e) => {
+            const res = e.results[e.results.length - 1];
+            if (res.isFinal) {
+                const alternatives = Array.from(res).map(a => a.transcript.trim()).filter(Boolean);
+                onFinal(alternatives);
+            } else {
+                onInterim(res[0].transcript);
+            }
+        };
+        this.rec.onstart = () => { this.listening = true; onStateChange(true); };
+        this.rec.onend = () => { this.listening = false; onStateChange(false); };
+        this.rec.onerror = (e) => { this.listening = false; onStateChange(false); onError(e.error); };
+    }
+    start() { if (this.rec && !this.listening) { try { this.rec.start(); } catch (_) {} } }
+    stop() { if (this.rec && this.listening) { try { this.rec.stop(); } catch (_) {} } }
+    toggle() { this.listening ? this.stop() : this.start(); }
+}
 
-           // バリデーション: 変換後が有効なひらがな（長音符含む）かチェック
-           if (!/^[ぁ-んー]+$/.test(hiraganaWord)) {
-               this.showMessage('ひらがな、カタカナで<ruby>入力<rt>にゅうりょく</rt></ruby>してね！');
-               return;
-           }
+/* ================================================================
+   ゲーム本体
+================================================================ */
+const CHARACTERS = ['🦸‍♂️', '🦸‍♀️', '🥷', '🐱', '🐶', '🐻', '🦁', '🐯', '🐵', '🦊', '🐰', '🐲', '🦄', '🦖', '👻', '👽', '🤖', '🐧'];
+const CPU_CHAR = '🤖';
+const TIMEOUT_PENALTY = 5;
+const CPU_LEVELS = {
+    easy:   { label: 'やさしい', failRate: .18, pick: 'short',  delay: [3500, 6500] },
+    normal: { label: 'ふつう',   failRate: .05, pick: 'random', delay: [2000, 4500] },
+    hard:   { label: 'つよい',   failRate: 0,   pick: 'long',   delay: [1200, 2800] },
+};
 
+class ShiritoriFighter {
+    constructor() {
+        this.$ = this.collectElements();
+        this.sfx = new SFX();
+        this.fx = new FxCanvas(this.$.fxCanvas);
+        this.timers = { turn: null, cpu: [], transition: [] };
 
-           if (hiraganaWord.charAt(0) !== this.gameState.nextChar) {
-               this.showMessage(`「${this.gameState.nextChar}」から<ruby>始<rt>はじ</rt></ruby>まる<ruby>言葉<rt>ことば</rt></ruby>だよ！`);
-               return;
-           }
-           if (hiraganaWord.slice(-1) === 'ん') {
-               this.showMessage(`「ん」が<ruby>付<rt>つ</rt></ruby>いた！<br> ${this.gameState.players[this.gameState.currentPlayerIndex].name}の<ruby>負<rt>ま</rt></ruby>け...`);
-               this.endGame(1 - this.gameState.currentPlayerIndex);
-               return;
-           }
-           if (this.gameState.usedWords.includes(hiraganaWord)) {
-               this.showMessage('その<ruby>言葉<rt>ことば</rt></ruby>はもう<ruby>使<rt>つか</rt></ruby>われたよ！');
-               return;
-           }
+        // セットアップ状態 (ゲーム状態とは分離して保持 — 再戦時にも維持される)
+        this.setup = {
+            mode: 'pvp',
+            cpuLevel: 'normal',
+            chars: [CHARACTERS[0], CHARACTERS[1]],
+            hp: 50,
+            time: 20,
+        };
+        this.state = null;
 
+        this.voice = new VoiceInput({
+            onInterim: (text) => { if (!this.isInputLocked()) this.$.wordInput.value = text; },
+            onFinal: (alts) => this.handleVoiceResult(alts),
+            onStateChange: (listening) => this.$.micBtn.classList.toggle('listening', listening),
+            onError: (err) => this.handleVoiceError(err),
+        });
+        if (this.voice.supported) this.$.micBtn.classList.add('supported');
 
-           this.handleAttack(hiraganaWord, rawWord);
-       }
+        this.bindEvents();
+        this.buildCharacterGrids();
+        this.updateSoundIcon();
+        this.setupInstallPrompt();
+    }
 
+    collectElements() {
+        const byId = id => document.getElementById(id);
+        return {
+            setupScreen: byId('setup-screen'), gameScreen: byId('game-screen'),
+            resultScreen: byId('result-screen'),
+            modeTabs: document.querySelectorAll('.mode-tab'),
+            p1Name: byId('p1-name'), p2Name: byId('p2-name'),
+            p1Chars: byId('p1-chars'), p2Chars: byId('p2-chars'),
+            p2Setup: byId('p2-setup'), p2SetupTitle: byId('p2-setup-title'),
+            cpuLevelWrap: byId('cpu-level-wrap'), cpuLevel: byId('cpu-level'),
+            hpSelect: byId('hp-select'), timeSelect: byId('time-select'),
+            startBtn: byId('start-game-btn'),
+            cards: [byId('player1-card'), byId('player2-card')],
+            charEls: [byId('player1-char'), byId('player2-char')],
+            nameEls: [byId('player1-name'), byId('player2-name')],
+            hpBars: [byId('player1-hp'), byId('player2-hp')],
+            hpNums: [byId('player1-hp-num'), byId('player2-hp-num')],
+            nextCharDisc: byId('next-char-disc'), turnIndicator: byId('turn-indicator'),
+            timerWrap: byId('timer-wrap'), timerNum: byId('timer-num'), timerFill: byId('timer-fill'),
+            messageBox: byId('message-box'),
+            wordForm: byId('wordForm'), wordInput: byId('wordInput'),
+            micBtn: byId('mic-btn'), submitBtn: byId('submitBtn'),
+            historyArea: byId('history-area'),
+            turnBanner: byId('turn-banner'), turnBannerText: byId('turn-banner-text'),
+            resultWord: byId('result-word'), winnerChar: byId('winner-char'),
+            winnerName: byId('winner-name'), resultSub: byId('result-sub'),
+            statWords: byId('stat-words'), statMaxDmg: byId('stat-maxdmg'), statTime: byId('stat-time'),
+            rematchBtn: byId('rematch-btn'), homeBtn: byId('home-btn'),
+            soundBtn: byId('sound-btn'), installBtn: byId('install-btn'),
+            fxCanvas: byId('fx-canvas'),
+        };
+    }
 
-       handleAttack(hiraganaWord, rawWord) {
-           const damage = this.calculateDamage(hiraganaWord);
-           const opponentIndex = 1 - this.gameState.currentPlayerIndex;
-          
-           this.gameState.players[opponentIndex].hp -= damage;
-           this.playAnimation(this.gameState.currentPlayerIndex, opponentIndex);
-          
-           this.gameState.usedWords.push(hiraganaWord);
-           this.addHistory(hiraganaWord, rawWord, this.gameState.currentPlayerIndex);
-           this.gameState.nextChar = this.getNextChar(hiraganaWord);
-           this.elements.wordInput.value = '';
+    /* ---------- セットアップ画面 ---------- */
+    bindEvents() {
+        this.$.modeTabs.forEach(tab => tab.addEventListener('click', () => {
+            this.sfx.click();
+            this.$.modeTabs.forEach(t => { t.classList.remove('selected'); t.setAttribute('aria-checked', 'false'); });
+            tab.classList.add('selected');
+            tab.setAttribute('aria-checked', 'true');
+            this.setup.mode = tab.dataset.mode;
+            this.applyModeUI();
+        }));
 
+        this.bindSegGroup(this.$.cpuLevel, 'level', v => this.setup.cpuLevel = v);
+        this.bindSegGroup(this.$.hpSelect, 'hp', v => this.setup.hp = parseInt(v, 10));
+        this.bindSegGroup(this.$.timeSelect, 'time', v => this.setup.time = parseInt(v, 10));
 
-           this.updateDisplay();
+        this.$.startBtn.addEventListener('click', () => this.startGame());
+        this.$.wordForm.addEventListener('submit', e => { e.preventDefault(); this.submitWord(); });
+        this.$.micBtn.addEventListener('click', () => {
+            if (this.isInputLocked()) return;
+            this.sfx.micOn();
+            this.voice.toggle();
+        });
+        this.$.rematchBtn.addEventListener('click', () => { this.sfx.select(); this.startGame(); });
+        this.$.homeBtn.addEventListener('click', () => { this.sfx.click(); this.goHome(); });
+        this.$.soundBtn.addEventListener('click', () => {
+            this.sfx.setMuted(!this.sfx.muted);
+            this.updateSoundIcon();
+            this.sfx.click();
+        });
+    }
 
+    bindSegGroup(container, dataKey, onChange) {
+        container.addEventListener('click', e => {
+            const btn = e.target.closest('.seg-btn');
+            if (!btn) return;
+            this.sfx.click();
+            container.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            onChange(btn.dataset[dataKey]);
+        });
+    }
 
-           if (this.gameState.players[opponentIndex].hp <= 0) {
-               this.endGame(this.gameState.currentPlayerIndex);
-           } else {
-               this.switchTurn();
-           }
-       }
-      
-       switchTurn() {
-           if(this.gameState.isGameOver) return;
-           this.gameState.currentPlayerIndex = 1 - this.gameState.currentPlayerIndex;
-           this.updateActivePlayer();
-           this.showMessage(`次は「${this.gameState.nextChar}」。${this.gameState.players[this.gameState.currentPlayerIndex].name}のターン！`);
-           this.startTimer();
-       }
-      
-       endGame(winnerIndex) {
-           this.gameState.isGameOver = true;
-           clearInterval(this.gameState.timerInterval);
-           const winner = this.gameState.players[winnerIndex];
-           this.elements.gameOverMessage.innerHTML = `${winner.char}<br>${winner.name}の<ruby>勝<rt>か</rt></ruby>ち！`;
-           this.elements.gameOverScreen.style.display = 'flex';
-           this.startConfetti();
-       }
-      
-       restartGame() {
-           this.stopConfetti();
-           this.elements.gameOverScreen.style.display = 'none';
-           this.elements.setupScreen.style.display = 'block';
-           this.elements.gameScreen.style.display = 'none';
-          
-           this.elements.p1NameInput.value = '';
-           this.elements.p2NameInput.value = '';
-           document.querySelectorAll('.char-option.selected').forEach(el => el.classList.remove('selected'));
-           this.elements.historyArea.innerHTML = '';
-          
-           this.resetGameState();
-       }
+    buildCharacterGrids() {
+        [this.$.p1Chars, this.$.p2Chars].forEach((grid, playerIndex) => {
+            grid.textContent = '';
+            CHARACTERS.forEach((char, i) => {
+                const el = document.createElement('button');
+                el.type = 'button';
+                el.className = 'char-option';
+                el.textContent = char;
+                el.setAttribute('aria-label', `キャラクター ${char}`);
+                if (this.setup.chars[playerIndex] === char) el.classList.add('selected');
+                el.addEventListener('click', () => {
+                    this.sfx.select();
+                    grid.querySelectorAll('.char-option').forEach(o => o.classList.remove('selected'));
+                    el.classList.add('selected');
+                    this.setup.chars[playerIndex] = char;
+                });
+                grid.appendChild(el);
+            });
+        });
+    }
 
+    applyModeUI() {
+        const isCpu = this.setup.mode === 'cpu';
+        this.$.cpuLevelWrap.classList.toggle('visible', isCpu);
+        this.$.p2SetupTitle.textContent = isCpu ? 'コンピュータ' : 'PLAYER 2';
+        this.$.p2Name.style.display = isCpu ? 'none' : '';
+        this.$.p2Chars.style.display = isCpu ? 'none' : '';
+    }
 
-       // 5. ヘルパー関数 (計算やロジック)
-       // =================================================================================
-       getNextChar(word) {
-           let lastChar = word.slice(-1);
-           if (lastChar === 'ー') {
-               lastChar = word.slice(-2, -1);
-           }
-           const conversionMap = {'ぁ':'あ', 'ぃ':'い', 'ぅ':'う', 'ぇ':'え', 'ぉ':'お', 'っ':'つ', 'ゃ':'や', 'ゅ':'ゆ', 'ょ':'よ'};
-           return conversionMap[lastChar] || lastChar;
-       }
-      
-       calculateDamage(word) {
-           let damage = word.length;
-           // 拗音や長音符にボーナス
-           const bonusChars = ['ゃ', 'ゅ', 'ょ', 'ー'];
-           damage += word.split('').filter(char => bonusChars.includes(char)).length * 2;
-           return damage;
-       }
+    updateSoundIcon() { this.$.soundBtn.textContent = this.sfx.muted ? '🔇' : '🔊'; }
 
+    /* ---------- ゲーム開始・状態 ---------- */
+    startGame() {
+        this.clearAllTimers();
+        this.fx.stopConfetti();
+        this.sfx.start();
 
-       startTimer() {
-           clearInterval(this.gameState.timerInterval);
-           let currentTime = this.gameState.baseTimer;
-           this.elements.timerEl.innerHTML = `<ruby>残<rt>のこ</rt></ruby>り<ruby>時間<rt>じかん</rt></ruby>: ${currentTime}`;
-          
-           this.gameState.timerInterval = setInterval(() => {
-               currentTime--;
-               this.elements.timerEl.innerHTML = `<ruby>残<rt>のこ</rt></ruby>り<ruby>時間<rt>じかん</rt></ruby>: ${currentTime}`;
-               if (currentTime <= 0) {
-                   clearInterval(this.gameState.timerInterval);
-                   this.handleTimeOut();
-               }
-           }, 1000);
-       }
+        const isCpu = this.setup.mode === 'cpu';
+        const hiragana = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわ';
+        const p1Name = this.$.p1Name.value.trim() || 'プレイヤー1';
+        const p2Name = isCpu
+            ? `CPU (${CPU_LEVELS[this.setup.cpuLevel].label})`
+            : (this.$.p2Name.value.trim() || 'プレイヤー2');
 
+        this.state = {
+            players: [
+                { name: p1Name, char: this.setup.chars[0], hp: this.setup.hp, maxHp: this.setup.hp, isCpu: false, words: 0 },
+                { name: p2Name, char: isCpu ? CPU_CHAR : this.setup.chars[1], hp: this.setup.hp, maxHp: this.setup.hp, isCpu, words: 0 },
+            ],
+            current: 0,
+            nextChar: hiragana[Math.floor(Math.random() * hiragana.length)],
+            usedWords: new Set(),
+            history: [],
+            baseTimer: this.setup.time,
+            over: false,
+            locked: false,
+            startedAt: Date.now(),
+            maxDamage: { word: null, value: 0 },
+        };
 
-       handleTimeOut() {
-           const penalty = 5;
-           const currentPlayer = this.gameState.players[this.gameState.currentPlayerIndex];
-           this.showMessage(`<ruby>時間切<rt>じかんぎ</rt></ruby>れ！ ${currentPlayer.name}に${penalty}ダメージ！`);
-           currentPlayer.hp -= penalty;
-          
-           this.playAnimation(1-this.gameState.currentPlayerIndex, this.gameState.currentPlayerIndex); // 相手からの攻撃に見せる
-           this.updateDisplay();
+        this.$.resultScreen.classList.remove('show');
+        this.$.setupScreen.classList.remove('active');
+        this.$.gameScreen.classList.add('active');
+        this.$.historyArea.textContent = '';
+        this.$.wordInput.value = '';
 
+        this.updateHUD();
+        this.setNextChar(this.state.nextChar, false);
+        this.showBanner(`${p1Name} のターン！`);
+        this.showMessage(`「<span class="accent">${this.state.nextChar}</span>」から<ruby>始<rt>はじ</rt></ruby>まることばで<ruby>攻撃<rt>こうげき</rt></ruby>しよう！`);
+        this.beginTurn();
+    }
 
-           if (currentPlayer.hp <= 0) {
-               this.endGame(1 - this.gameState.currentPlayerIndex);
-           } else {
-               // 1.5秒待ってからターンを切り替える
-               setTimeout(() => this.switchTurn(), 1500);
-           }
-       }
-      
-       // 6. UI更新・表示関連
-       // =================================================================================
-       updateDisplay() {
-           this.gameState.players.forEach((player, index) => {
-               const playerUI = this.elements.players[index];
-               player.hp = Math.max(0, player.hp); // HPがマイナスにならないように
-               playerUI.nameEl.textContent = player.name;
-               playerUI.charEl.textContent = player.char;
-               const hpPercentage = (player.hp / player.maxHp) * 100;
-               playerUI.hpEl.style.width = `${hpPercentage}%`;
-           });
-           this.updateActivePlayer();
-       }
-      
-       updateActivePlayer() {
-           this.elements.players[0].card.classList.toggle('active', this.gameState.currentPlayerIndex === 0);
-           this.elements.players[1].card.classList.toggle('active', this.gameState.currentPlayerIndex === 1);
-       }
-      
-       showMessage(html) { this.elements.messageBox.innerHTML = html; }
-      
-       playAnimation(attackerIndex, defenderIndex) {
-           const attackerCard = this.elements.players[attackerIndex].card;
-           const defenderCard = this.elements.players[defenderIndex].card;
+    goHome() {
+        this.clearAllTimers();
+        this.voice.stop();
+        this.fx.stopConfetti();
+        this.state = null;
+        this.$.resultScreen.classList.remove('show');
+        this.$.gameScreen.classList.remove('active');
+        this.$.setupScreen.classList.add('active');
+    }
 
+    clearAllTimers() {
+        clearInterval(this.timers.turn);
+        this.timers.turn = null;
+        this.timers.cpu.forEach(clearTimeout);
+        this.timers.cpu = [];
+        this.timers.transition.forEach(clearTimeout);
+        this.timers.transition = [];
+    }
 
-           attackerCard.classList.add('attack');
-           defenderCard.classList.add('damage');
+    later(ms, fn, bucket = 'transition') {
+        const id = setTimeout(() => {
+            this.timers[bucket] = this.timers[bucket].filter(t => t !== id);
+            fn();
+        }, ms);
+        this.timers[bucket].push(id);
+        return id;
+    }
 
+    isInputLocked() {
+        return !this.state || this.state.over || this.state.locked || this.currentPlayer().isCpu;
+    }
+    currentPlayer() { return this.state.players[this.state.current]; }
+    opponentIndex() { return 1 - this.state.current; }
 
-           setTimeout(() => {
-               attackerCard.classList.remove('attack');
-               defenderCard.classList.remove('damage');
-           }, 500);
-       }
-      
-       addHistory(hiraganaWord, rawWord, playerIndex) {
-           const item = document.createElement('div');
-           item.classList.add('history-item');
-          
-           let displayText = hiraganaWord;
-           // 入力された文字とひらがな読みが異なる場合、両方表示する
-           if (rawWord && rawWord !== hiraganaWord) {
-               displayText = `${rawWord} (${hiraganaWord})`;
-           }
+    /* ---------- ターン進行 ---------- */
+    beginTurn() {
+        if (this.state.over) return;
+        const player = this.currentPlayer();
+        this.state.locked = false;
+        this.updateHUD();
+        this.setTurnIndicator();
+        this.startTimer();
 
+        const humanTurn = !player.isCpu;
+        this.$.wordInput.disabled = !humanTurn;
+        this.$.submitBtn.disabled = !humanTurn;
+        this.$.micBtn.disabled = !humanTurn;
+        if (humanTurn) {
+            // モバイルでキーボードが暴発しないよう、PCのみ自動フォーカス
+            if (!('ontouchstart' in window)) this.$.wordInput.focus();
+        } else {
+            this.runCpuTurn();
+        }
+    }
 
-           item.innerHTML = `${this.gameState.players[playerIndex].name}: <span class="player${playerIndex + 1}-word">${displayText}</span>`;
-           this.elements.historyArea.prepend(item);
-       }
-      
-       // 7. 紙吹雪エフェクト
-       // =================================================================================
-       startConfetti() {
-           const canvas = this.elements.confettiCanvas;
-           this.confetti.ctx = canvas.getContext('2d');
-           canvas.width = window.innerWidth;
-           canvas.height = window.innerHeight;
-           this.confetti.particles = Array.from({ length: 150 }, () => this.createParticle());
-           this.animateConfetti();
-       }
+    switchTurn() {
+        if (this.state.over) return;
+        // 前ターンのCPU動作(思考・タイピング)が残っていたら破棄する
+        this.timers.cpu.forEach(clearTimeout);
+        this.timers.cpu = [];
+        this.state.current = this.opponentIndex();
+        const player = this.currentPlayer();
+        this.showBanner(`${player.name} のターン！`);
+        this.showMessage(`「<span class="accent">${this.state.nextChar}</span>」から<ruby>始<rt>はじ</rt></ruby>まることば！`);
+        this.beginTurn();
+    }
 
+    /* ---------- 単語の判定 (しりとりの基本ルールは従来どおり) ---------- */
+    submitWord(fromCpu = false) {
+        if (!this.state || this.state.over || this.state.locked) return;
+        if (!fromCpu && this.currentPlayer().isCpu) return;
 
-       stopConfetti() {
-           cancelAnimationFrame(this.confetti.animationId);
-           if (this.confetti.ctx) {
-               this.confetti.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-           }
-       }
+        const rawWord = this.$.wordInput.value.trim();
+        if (rawWord === '') return;
+        this.voice.stop();
 
+        const word = Kana.toHiragana(rawWord);
 
-       createParticle() {
-           const canvas = this.elements.confettiCanvas;
-           return {
-               x: Math.random() * canvas.width,
-               y: Math.random() * canvas.height - canvas.height,
-               size: Math.random() * 10 + 5,
-               color: this.confetti.colors[Math.floor(Math.random() * this.confetti.colors.length)],
-               speed: Math.random() * 3 + 2,
-               angle: Math.random() * Math.PI * 2,
-               spin: (Math.random() - 0.5) * 0.2
-           };
-       }
+        if (!Kana.isValidWord(word)) {
+            this.rejectWord('ひらがな か カタカナで<ruby>入力<rt>にゅうりょく</rt></ruby>してね！');
+            return;
+        }
+        if (word.charAt(0) !== this.state.nextChar) {
+            this.rejectWord(`「<span class="accent">${this.state.nextChar}</span>」から<ruby>始<rt>はじ</rt></ruby>まることばだよ！`);
+            return;
+        }
+        if (this.state.usedWords.has(word)) {
+            this.rejectWord('そのことばは もう<ruby>使<rt>つか</rt></ruby>われたよ！');
+            return;
+        }
+        if (word.slice(-1) === 'ん') {
+            const loser = this.currentPlayer();
+            this.showMessage(`「ん」がついた！ ${this.escape(loser.name)} の<ruby>負<rt>ま</rt></ruby>け…`);
+            this.sfx.timeup();
+            this.endGame(this.opponentIndex(), '「ん」で終わる言葉を言ってしまった！');
+            return;
+        }
 
+        this.performAttack(word, rawWord);
+    }
 
-       animateConfetti() {
-           const ctx = this.confetti.ctx;
-           const canvas = this.elements.confettiCanvas;
-           ctx.clearRect(0, 0, canvas.width, canvas.height);
-           this.confetti.particles.forEach((p, i) => {
-               p.y += p.speed;
-               p.x += Math.sin(p.angle);
-               p.angle += p.spin;
-               ctx.fillStyle = p.color;
-               ctx.save();
-               ctx.translate(p.x, p.y);
-               ctx.rotate(p.angle);
-               ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-               ctx.restore();
-               if (p.y > canvas.height) {
-                   this.confetti.particles[i] = this.createParticle();
-                   this.confetti.particles[i].y = -10;
-               }
-           });
-           this.confetti.animationId = requestAnimationFrame(this.animateConfetti.bind(this));
-       }
-   }
+    rejectWord(messageHTML) {
+        this.sfx.error();
+        this.showMessage(messageHTML);
+        this.$.wordInput.select();
+    }
 
+    performAttack(word, rawWord) {
+        const attackerIndex = this.state.current;
+        const defenderIndex = this.opponentIndex();
+        const attacker = this.state.players[attackerIndex];
+        const defender = this.state.players[defenderIndex];
 
-   // ゲームインスタンスを生成して開始
-   window.addEventListener('load', () => new ShiritoriFighterGame());
-   </script>
+        this.state.locked = true;
+        this.stopTimer();
+        this.$.wordInput.value = '';
+        this.$.wordInput.disabled = true;
+        this.$.submitBtn.disabled = true;
+        this.$.micBtn.disabled = true;
+
+        // ダメージ計算 (従来ルール: 文字数 + 拗音・長音ボーナス×2)
+        const bonusChars = ['ゃ', 'ゅ', 'ょ', 'ー'];
+        const bonus = word.split('').filter(c => bonusChars.includes(c)).length;
+        const damage = word.length + bonus * 2;
+
+        defender.hp = Math.max(0, defender.hp - damage);
+        attacker.words++;
+        this.state.usedWords.add(word);
+        this.state.history.push({ word, rawWord, playerIndex: attackerIndex, damage });
+        if (damage > this.state.maxDamage.value) this.state.maxDamage = { word, value: damage };
+        this.state.nextChar = Kana.nextChar(word);
+
+        this.addHistoryChip(word, rawWord, attackerIndex, damage);
+
+        // 演出
+        this.sfx.attack();
+        this.$.cards[attackerIndex].classList.add(attackerIndex === 0 ? 'attack-r' : 'attack-l');
+        this.later(220, () => {
+            this.sfx.damage();
+            this.$.cards[defenderIndex].classList.add('hit');
+            this.$.gameScreen.classList.add('shake');
+            this.showDamagePop(defenderIndex, damage);
+            const rect = this.$.cards[defenderIndex].getBoundingClientRect();
+            this.fx.burst(rect.left + rect.width / 2, rect.top + rect.height / 2,
+                          defenderIndex === 0 ? '#ff5e7d' : '#38bdf8', 22);
+            this.updateHUD();
+        });
+        this.later(750, () => {
+            this.$.cards[attackerIndex].classList.remove('attack-r', 'attack-l');
+            this.$.cards[defenderIndex].classList.remove('hit');
+            this.$.gameScreen.classList.remove('shake');
+        });
+
+        const bonusText = bonus > 0 ? ` <span class="accent">ボーナス +${bonus * 2}!</span>` : '';
+        this.showMessage(`${this.escape(attacker.name)} の「${this.escape(rawWord)}」！ <span class="accent">${damage}</span> ダメージ！${bonusText}`);
+        this.setNextChar(this.state.nextChar, true);
+
+        if (defender.hp <= 0) {
+            this.later(900, () => this.endGame(attackerIndex, 'HPを0にした！'));
+        } else {
+            this.later(1000, () => this.switchTurn());
+        }
+    }
+
+    /* ---------- タイマー ---------- */
+    startTimer() {
+        this.stopTimer();
+        const durMs = this.state.baseTimer * 1000;
+        const endAt = Date.now() + durMs;
+        let lastSec = this.state.baseTimer;
+        this.$.timerWrap.classList.remove('hurry');
+        this.renderTimer(durMs, durMs);
+
+        this.timers.turn = setInterval(() => {
+            const remain = Math.max(0, endAt - Date.now());
+            this.renderTimer(remain, durMs);
+            const sec = Math.ceil(remain / 1000);
+            if (sec !== lastSec) {
+                lastSec = sec;
+                if (sec <= 5 && sec > 0) {
+                    this.$.timerWrap.classList.add('hurry');
+                    this.sfx.tick();
+                }
+            }
+            if (remain <= 0) {
+                this.stopTimer();
+                this.handleTimeout();
+            }
+        }, 100);
+    }
+    stopTimer() { clearInterval(this.timers.turn); this.timers.turn = null; }
+    renderTimer(remainMs, durMs) {
+        this.$.timerFill.style.width = `${(remainMs / durMs) * 100}%`;
+        this.$.timerNum.textContent = `${Math.ceil(remainMs / 1000)}びょう`;
+    }
+
+    handleTimeout() {
+        if (this.state.over || this.state.locked) return;
+        this.state.locked = true;
+        this.voice.stop();
+        this.$.wordInput.disabled = true;
+        this.$.submitBtn.disabled = true;
+        this.$.micBtn.disabled = true;
+
+        const victimIndex = this.state.current;
+        const victim = this.state.players[victimIndex];
+        victim.hp = Math.max(0, victim.hp - TIMEOUT_PENALTY);
+
+        this.sfx.timeup();
+        this.showMessage(`<ruby>時間切<rt>じかんぎ</rt></ruby>れ！ ${this.escape(victim.name)} に <span class="accent">${TIMEOUT_PENALTY}</span> ダメージ！`);
+        this.$.cards[victimIndex].classList.add('hit');
+        this.$.gameScreen.classList.add('shake');
+        this.showDamagePop(victimIndex, TIMEOUT_PENALTY);
+        this.later(600, () => {
+            this.$.cards[victimIndex].classList.remove('hit');
+            this.$.gameScreen.classList.remove('shake');
+        });
+        this.updateHUD();
+
+        if (victim.hp <= 0) {
+            this.later(900, () => this.endGame(1 - victimIndex, '相手が時間切れでたおれた！'));
+        } else {
+            this.later(1400, () => this.switchTurn());
+        }
+    }
+
+    /* ---------- CPU ---------- */
+    runCpuTurn() {
+        const level = CPU_LEVELS[this.setup.cpuLevel];
+        this.showMessage('🤖 かんがえちゅう…');
+
+        // わざと失敗 → タイマー切れに任せる (時間切れペナルティを受ける)
+        if (Math.random() < level.failRate) return;
+
+        const candidates = (CPU_DICT[this.state.nextChar] || []).filter(w => !this.state.usedWords.has(w));
+        if (candidates.length === 0) {
+            // 思いつかない → CPUの負け
+            this.later(2200, () => {
+                if (this.state.over) return;
+                this.stopTimer();
+                this.showMessage('🤖 まいった！ ことばが<ruby>思<rt>おも</rt></ruby>いつかない…');
+                this.later(1200, () => this.endGame(0, 'コンピュータが降参した！'));
+            }, 'cpu');
+            return;
+        }
+
+        let word;
+        if (level.pick === 'short') {
+            word = candidates.reduce((a, b) => (a.length <= b.length ? a : b));
+        } else if (level.pick === 'long') {
+            word = candidates.reduce((a, b) => (a.length >= b.length ? a : b));
+        } else {
+            word = candidates[Math.floor(Math.random() * candidates.length)];
+        }
+
+        const [dMin, dMax] = level.delay;
+        const thinkMs = Math.min(dMin + Math.random() * (dMax - dMin), this.state.baseTimer * 1000 - 2500);
+        this.later(Math.max(600, thinkMs), () => this.cpuType(word), 'cpu');
+    }
+
+    cpuType(word) {
+        if (this.state.over || this.currentPlayer() !== this.state.players[1]) return;
+        // 1文字ずつタイプする演出
+        let i = 0;
+        const typeNext = () => {
+            if (this.state.over || !this.currentPlayer().isCpu) return;
+            i++;
+            this.$.wordInput.value = word.slice(0, i);
+            if (i < word.length) {
+                this.later(90, typeNext, 'cpu');
+            } else {
+                this.later(350, () => this.submitWord(true), 'cpu');
+            }
+        };
+        typeNext();
+    }
+
+    /* ---------- 音声入力 ---------- */
+    handleVoiceResult(alternatives) {
+        if (this.isInputLocked()) return;
+        // 候補の中から「かなに変換して有効になるもの」を優先して選ぶ
+        let best = null;
+        for (const alt of alternatives) {
+            const kana = Kana.toHiragana(alt);
+            if (Kana.isValidWord(kana)) {
+                if (kana.charAt(0) === this.state.nextChar) { best = alt; break; }
+                if (!best) best = alt;
+            }
+        }
+        if (best) {
+            this.$.wordInput.value = best;
+            this.submitWord();
+        } else if (alternatives.length > 0) {
+            this.$.wordInput.value = alternatives[0];
+            this.showMessage('うまく<ruby>聞<rt>き</rt></ruby>き<ruby>取<rt>と</rt></ruby>れなかったかも。なおして「こうげき！」を<ruby>押<rt>お</rt></ruby>してね');
+        }
+    }
+
+    handleVoiceError(err) {
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+            this.showMessage('マイクが<ruby>使<rt>つか</rt></ruby>えないよ。ブラウザのマイク<ruby>許可<rt>きょか</rt></ruby>を<ruby>確認<rt>かくにん</rt></ruby>してね');
+        } else if (err === 'no-speech') {
+            this.showMessage('<ruby>声<rt>こえ</rt></ruby>が<ruby>聞<rt>き</rt></ruby>こえなかったよ。もういちど🎤を<ruby>押<rt>お</rt></ruby>してね');
+        }
+    }
+
+    /* ---------- ゲーム終了 ---------- */
+    endGame(winnerIndex, reason) {
+        if (this.state.over) return;
+        this.state.over = true;
+        this.clearAllTimers();
+        this.voice.stop();
+
+        const winner = this.state.players[winnerIndex];
+        const elapsed = Math.floor((Date.now() - this.state.startedAt) / 1000);
+        const totalWords = this.state.players[0].words + this.state.players[1].words;
+
+        this.$.winnerChar.textContent = winner.char;
+        this.$.winnerName.textContent = `${winner.name} のかち！`;
+        this.$.resultSub.textContent = reason;
+        this.$.statWords.textContent = String(totalWords);
+        this.$.statMaxDmg.textContent = this.state.maxDamage.word
+            ? `${this.state.maxDamage.value} (${this.state.maxDamage.word})` : '-';
+        this.$.statTime.textContent = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
+
+        this.later(600, () => {
+            this.$.resultScreen.classList.add('show');
+            this.sfx.win();
+            this.fx.startConfetti();
+        });
+    }
+
+    /* ---------- UI更新 ---------- */
+    updateHUD() {
+        this.state.players.forEach((player, i) => {
+            this.$.nameEls[i].textContent = player.name;
+            this.$.charEls[i].textContent = player.char;
+            this.$.hpNums[i].textContent = `${player.hp}/${player.maxHp}`;
+            const pct = (player.hp / player.maxHp) * 100;
+            const bar = this.$.hpBars[i];
+            bar.style.width = `${pct}%`;
+            bar.classList.toggle('low', pct <= 25);
+            bar.classList.toggle('mid', pct > 25 && pct <= 55);
+            this.$.cards[i].classList.toggle('active', !this.state.over && this.state.current === i);
+        });
+    }
+
+    setTurnIndicator() {
+        const el = this.$.turnIndicator;
+        el.textContent = `${this.currentPlayer().name} のターン`;
+        el.className = 'q-turn ' + (this.state.current === 0 ? 'p1-turn' : 'p2-turn');
+    }
+
+    setNextChar(char, animate) {
+        const disc = this.$.nextCharDisc;
+        if (animate) {
+            disc.classList.remove('flip');
+            void disc.offsetWidth; /* アニメーション再生のためのリフロー */
+            disc.classList.add('flip');
+        }
+        disc.textContent = char;
+    }
+
+    showMessage(html) {
+        // 信頼できる文字列のみHTMLとして扱う (ユーザー入力は escape() 済み)
+        this.$.messageBox.innerHTML = html;
+        this.$.messageBox.classList.remove('pop');
+        void this.$.messageBox.offsetWidth;
+        this.$.messageBox.classList.add('pop');
+    }
+
+    escape(s) {
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    showBanner(text) {
+        this.$.turnBannerText.textContent = text;
+        this.$.turnBanner.classList.remove('show');
+        void this.$.turnBanner.offsetWidth;
+        this.$.turnBanner.classList.add('show');
+        this.later(1200, () => this.$.turnBanner.classList.remove('show'));
+    }
+
+    showDamagePop(playerIndex, damage) {
+        const pop = document.createElement('div');
+        pop.className = 'dmg-pop';
+        pop.textContent = `-${damage}`;
+        this.$.cards[playerIndex].appendChild(pop);
+        setTimeout(() => pop.remove(), 1100);
+    }
+
+    addHistoryChip(word, rawWord, playerIndex, damage) {
+        const chip = document.createElement('span');
+        chip.className = `history-item by-p${playerIndex + 1}`;
+        const wordSpan = document.createElement('span');
+        wordSpan.textContent = (rawWord && rawWord !== word) ? `${rawWord} (${word})` : word;
+        const dmgSpan = document.createElement('span');
+        dmgSpan.className = 'dmg-tag';
+        dmgSpan.textContent = `-${damage}`;
+        chip.append(wordSpan, dmgSpan);
+        this.$.historyArea.prepend(chip);
+    }
+
+    /* ---------- PWAインストール ---------- */
+    setupInstallPrompt() {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            this.$.installBtn.classList.add('available');
+        });
+        this.$.installBtn.addEventListener('click', async () => {
+            if (!this.deferredPrompt) return;
+            this.deferredPrompt.prompt();
+            await this.deferredPrompt.userChoice;
+            this.deferredPrompt = null;
+            this.$.installBtn.classList.remove('available');
+        });
+        window.addEventListener('appinstalled', () => {
+            this.$.installBtn.classList.remove('available');
+        });
+    }
+}
+
+/* ================================================================
+   起動
+================================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+    new ShiritoriFighter();
+
+    // Service Worker登録 (https/localhostの静的ホスティング時のみ。GAS上ではスキップ)
+    if ('serviceWorker' in navigator &&
+        (location.protocol === 'https:' || location.hostname === 'localhost') &&
+        !location.hostname.endsWith('googleusercontent.com')) {
+        navigator.serviceWorker.register('sw.js').catch(() => { /* 静的ホスティング以外では失敗してよい */ });
+    }
+});
+</script>
 </body>
 </html>
