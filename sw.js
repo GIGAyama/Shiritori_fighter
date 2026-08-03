@@ -1,7 +1,16 @@
 /* しりとりファイター Service Worker */
-const VERSION = 'v1.0.0';
-const SHELL_CACHE = `shiritori-shell-${VERSION}`;
-const RUNTIME_CACHE = `shiritori-runtime-${VERSION}`;
+/*
+ * 【最重要】activate では自アプリ以外のキャッシュを削除しない。
+ *   gigayama.github.io は数十個のアプリが同一オリジンを共有しているため、
+ *   CACHE_PREFIX で始まるキャッシュだけを掃除する。
+ *   以前はここで caches.keys() の結果を全部消していた。そのため
+ *   このアプリを開くたびに、同じ端末に入っている他の GIGA アプリの
+ *   キャッシュまで巻き添えで消え、それらがオフラインで起動しなくなっていた。
+ */
+const CACHE_PREFIX = 'shiritori-';
+const VERSION = 'v1.0.1';   // ← リリースごとに必ず上げる
+const SHELL_CACHE = `${CACHE_PREFIX}shell-${VERSION}`;
+const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-${VERSION}`;
 
 const SHELL_ASSETS = [
   './',
@@ -26,7 +35,11 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((k) => k !== SHELL_CACHE && k !== RUNTIME_CACHE).map((k) => caches.delete(k))
+        keys
+          // ← 自アプリ接頭辞のものだけを削除する。ここを外すと
+          //    同一オリジンの他アプリを巻き添えにする。
+          .filter((k) => k.startsWith(CACHE_PREFIX) && k !== SHELL_CACHE && k !== RUNTIME_CACHE)
+          .map((k) => caches.delete(k))
       ))
       .then(() => self.clients.claim())
   );
