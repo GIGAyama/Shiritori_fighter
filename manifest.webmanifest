@@ -4,9 +4,14 @@
   "description": "ことばで戦え！声でも遊べるしりとりバトルゲーム",
   "lang": "ja",
   "dir": "ltr",
-  "start_url": ".",
-  "scope": ".",
+
+  "id": "/Shiritori_fighter/",
+  "start_url": "/Shiritori_fighter/",
+  "scope": "/Shiritori_fighter/",
+
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "launch_handler": { "client_mode": ["navigate-existing", "auto"] },
   "orientation": "any",
   "background_color": "#170f33",
   "theme_color": "#312e81",

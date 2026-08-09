@@ -1,0 +1,16 @@
+{
+  "repo": "Shiritori_fighter",
+  "type": "A",
+  "entry": "index.html",
+  "budgets": {
+    "fileLines": 5000,
+    "fileBytes": 409600,
+    "iconLargeBytes": 61440,
+    "iconSmallBytes": 30720,
+    "imageBytes": 153600
+  },
+  "requiredDocs": ["README.md", "MANUAL.md", "AUDIT.md"],
+  "presentationMode": true,
+  "printCss": false,
+  "studyLog": false
+}

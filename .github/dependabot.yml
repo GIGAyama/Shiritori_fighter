@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # 品質ゲートを動かす GitHub Actions の版だけを見てもらう。
+  # このアプリ本体は外部ライブラリを一切使っていないので npm の監視対象は無い。
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3

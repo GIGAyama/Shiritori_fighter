@@ -1,0 +1,12 @@
+{
+  "name": "shiritori-fighter",
+  "version": "1.1.0",
+  "private": true,
+  "description": "ことばで戦え！声でも遊べるしりとりバトルゲーム",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-project.mjs",
+    "test": "node --test \"tests/*.test.mjs\""
+  }
+}
