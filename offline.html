@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#312e81">
+<meta name="color-scheme" content="light">
+<title>つながっていません — しりとりファイター</title>
+<!--
+  この画面は「ネットにつながらず、アプリ本体も手元に無い」ときに出る。
+  外部の資産にも JavaScript にも頼らない。色も文字も自前で持ち、
+  読み込み直しは <a href> で行う（インライン onclick は CSP に引っかかる）。
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex; align-items: center; justify-content: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 20px)
+             calc(env(safe-area-inset-right, 0px) + 20px)
+             calc(env(safe-area-inset-bottom, 0px) + 20px)
+             calc(env(safe-area-inset-left, 0px) + 20px);
+    color: #f5f3ff;
+    background: linear-gradient(160deg, #2b1b63 0%, #170f33 60%, #0d0a20 100%);
+    font-family: "Hiragino Maru Gothic ProN", "BIZ UDGothic", "Yu Gothic UI",
+                 "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+    line-height: 1.8;
+    text-align: center;
+    -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  }
+  .card {
+    max-width: 460px;
+    padding: clamp(20px, 6vw, 34px);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .16);
+  }
+  .mark { font-size: clamp(2.6rem, 12vw, 4rem); line-height: 1; }
+  h1 { font-size: clamp(1.2rem, 5vw, 1.6rem); margin: 10px 0 6px; }
+  p { font-size: clamp(.95rem, 3.6vw, 1.05rem); color: #ded9ff; }
+  a.retry {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 200px; min-height: 56px; margin-top: 20px; padding: 0 22px;
+    border-radius: 12px; text-decoration: none;
+    font-size: clamp(1rem, 4vw, 1.15rem); font-weight: 800;
+    color: #3d2600; background: linear-gradient(45deg, #fbbf24, #f59e0b);
+    box-shadow: 0 5px 0 #b45309;
+  }
+  @media (forced-colors: active) {
+    .card { border: 2px solid CanvasText; }
+    a.retry { border: 2px solid ButtonText; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark" aria-hidden="true">📡</div>
+    <h1>いま インターネットに つながっていません</h1>
+    <p>
+      まえに ひらいたことがあれば、そのまま あそべます。<br>
+      うまく ひらけないときは、Wi-Fi を たしかめてから
+      下のボタンを おしてください。
+    </p>
+    <a class="retry" href="./index.html">もういちど ひらく</a>
+  </div>
+</body>
+</html>
