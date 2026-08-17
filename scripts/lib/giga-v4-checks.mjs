@@ -115,9 +115,23 @@ export function run(ctx) {
   /* ---------------- PWA ---------------- */
   if (ctx.exists('manifest.webmanifest')) {
     const man = JSON.parse(ctx.read('manifest.webmanifest'));
-    const want = `/${ctx.config.repo}/`;
+    // 正しい値は「どこで配信するか」で変わる。
+    //
+    // 独自ドメイン（CNAME あり）だと、アプリはサブドメインの直下に置かれる。
+    //   https://shiritori-fighter.giga-school.com/
+    // ここで /Shiritori_fighter/ のままにすると scope がページの URL を含まなくなり、
+    // manifest ごと無視されて PWA としてインストールできなくなる。
+    //
+    // CNAME が無ければ従来どおり共有オリジンのサブディレクトリ配信なので、
+    // リポジトリ名の絶対パスでないと同居する別アプリと取り違えられる。
+    //
+    // 相対パス（"./"）はどちらの配信でも自分のアプリを指すので、いつでも通す。
+    const hasCname = ctx.exists('CNAME');
+    const want = hasCname ? './' : `/${ctx.config.repo}/`;
     for (const key of ['id', 'start_url', 'scope']) {
-      if (man[key] !== want) err('MANIFEST_ABS', `manifest の ${key} が "${man[key]}"（"${want}" にすること）`, 'manifest.webmanifest');
+      const v = man[key];
+      const ok = v === './' || (hasCname ? /^\/(\?|#|$)/.test(String(v)) : v === want);
+      if (!ok) err('MANIFEST_ABS', `manifest の ${key} が "${v}"（"${want}" にすること）`, 'manifest.webmanifest');
     }
     const purposes = (man.icons || []).map((i) => i.purpose);
     if (!purposes.includes('maskable')) err('MANIFEST_MASKABLE', 'maskable アイコンが無い', 'manifest.webmanifest');
