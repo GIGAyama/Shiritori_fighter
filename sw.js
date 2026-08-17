@@ -9,7 +9,7 @@
  * この Service Worker は localStorage を一切操作しない。
  */
 const CACHE_PREFIX = 'shiritori-';
-const APP_VERSION = 'v1.1.0';   // ← リリースごとに必ず上げる
+const APP_VERSION = 'v1.1.1';   // ← リリースごとに必ず上げる
 const CACHE_STATIC = CACHE_PREFIX + 'static-' + APP_VERSION;
 const CACHE_RUNTIME = CACHE_PREFIX + 'runtime-' + APP_VERSION;
 

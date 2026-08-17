@@ -5,9 +5,9 @@
   "lang": "ja",
   "dir": "ltr",
 
-  "id": "/Shiritori_fighter/",
-  "start_url": "/Shiritori_fighter/",
-  "scope": "/Shiritori_fighter/",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
 
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
