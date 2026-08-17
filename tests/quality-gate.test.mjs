@@ -86,14 +86,16 @@ const CASES = [
     (d) => edit(d, 'index.html', (s) => s.replace('</head>', '<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>\n</head>'))],
 
   ['manifest の相対パスを見つける', 'MANIFEST_ABS',
-    (d) => edit(d, 'manifest.webmanifest', (s) => s.replace('"start_url": "/Shiritori_fighter/"', '"start_url": "."'))],
+    // "./" は独自ドメインでも正しい値なので、もう壊れた形ではない。
+    // いまの壊れ方は、サブドメイン直下で配信するのにリポジトリ名の絶対パスが残っていること。
+    (d) => edit(d, 'manifest.webmanifest', (s) => s.replace('"start_url": "./"', '"start_url": "/Shiritori_fighter/"'))],
 
   ['offline.html を消すと落ちる', 'OFFLINE_HTML',
     (d) => unlinkSync(join(d, 'offline.html'))],
 
   ['install-hook.js が後ろにあると落ちる', 'INSTALL_HOOK_ORDER',
-    (d) => edit(d, 'index.html', (s) => s.replace('<script src="/Shiritori_fighter/install-hook.js"></script>\n', '')
-      .replace('<script src="/Shiritori_fighter/js/app.js"></script>',
+    (d) => edit(d, 'index.html', (s) => s.replace('<script src="./install-hook.js"></script>\n', '')
+      .replace('<script src="./js/app.js"></script>',
         '<script src="/Shiritori_fighter/js/app.js"></script>\n<script src="/Shiritori_fighter/install-hook.js"></script>'))],
 
   // 「消す式」ではなく「startsWith で絞る式があるか」を見ているか。
