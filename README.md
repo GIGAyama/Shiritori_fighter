@@ -64,16 +64,24 @@
 ### GitHub Pages
 
 1. リポジトリの **Settings > Pages** を開き、「Source」を `Deploy from a branch`、ブランチを `main`、フォルダを `/ (root)` に設定して保存します。
-2. 数分後に `https://<ユーザー名>.github.io/Shiritori_fighter/` で公開されます。
+2. 数分後に公開されます。このリポジトリは `CNAME` で独自ドメインを指定しているので、
+   公開先は **<https://shiritori-fighter.giga-school.com/>** です。
+   旧 `https://<ユーザー名>.github.io/Shiritori_fighter/` は GitHub Pages が
+   新しいアドレスへ転送します。
 3. Chrome で開くと、アドレスバーのインストールアイコン、またはヘッダーの「📲 インストール」ボタンから
    アプリとしてインストールできます（このボタンは、ブラウザがインストール可能と判断したときだけ出ます）。
    - Android / Chrome … メニューから「ホーム画面に追加」
    - iPhone / iPad（Safari）… 共有メニューから「ホーム画面に追加」
 
-> **⚠️ 置き場所は `/Shiritori_fighter/` 固定です。**
-> `gigayama.github.io` は数十個のアプリが同じオリジンを共有しています。
-> どのアプリかを取り違えないよう、`manifest.webmanifest` の `id` / `scope` / `start_url` と
-> `index.html` の読み込みパスを、すべてリポジトリ名からの絶対パスにしてあります。
+> **⚠️ パスはすべて相対（`./`）です。リポジトリ名の絶対パスに戻さないこと。**
+> 独自ドメイン `shiritori-fighter.giga-school.com` へ移り、アプリはドメイン直下に
+> 置かれています。`manifest.webmanifest` の `id` / `scope` / `start_url` も
+> `index.html` の読み込みパスも `./` からの相対にしてあり、これで
+> ドメイン直下でもサブパス配信でも同じように動きます。
+>
+> 旧構成（`gigayama.github.io/Shiritori_fighter/`）のようなリポジトリ名の絶対パスに
+> 戻すと、`scope` がページの URL を含まなくなって manifest ごと無視され、
+> **PWA としてインストールできなくなります。**
 > 別の名前のリポジトリにコピーして使うときは、**この3つとパスを最初に書き換えてください。**
 > 書き換えないと、すでにインストール済みの端末で「開いたら違うアプリが立ち上がる」事故が起きます。
 
