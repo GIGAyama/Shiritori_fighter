@@ -11,11 +11,15 @@
  */
 const CACHE_PREFIX = 'shiritori-';
 // APP_VERSION は手で上げない。node tools/build-sw.mjs が先読み対象の中身から自動で決める
-const APP_VERSION = 'v104b5900'; /* __APP_VERSION__ */
+const APP_VERSION = 'v15d08fa1'; /* __APP_VERSION__ */
 const CACHE_STATIC = CACHE_PREFIX + 'static-' + APP_VERSION;
 const CACHE_RUNTIME = CACHE_PREFIX + 'runtime-' + APP_VERSION;
 
 const PRECACHE_URLS = [
+  // 書体そのもの（woff2）は先読みに入れない。入れると先読みが 1MB を超え、
+  // 校内 Wi-Fi で 40 台が同時に開いたときに初回表示が止まる。
+  // 画面が出れば必ず取りにいくので、その 1 回で下の実行時キャッシュに入る。
+  './fonts.css',
   './',
   './index.html',
   './offline.html',

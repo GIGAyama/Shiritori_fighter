@@ -1,0 +1,32 @@
+{
+  "families": [
+    {
+      "family": "M PLUS Rounded 1c",
+      "weights": [
+        500,
+        700,
+        800
+      ]
+    },
+    {
+      "family": "DotGothic16",
+      "weights": [
+        400
+      ]
+    }
+  ],
+  "grades": [
+    1,
+    2
+  ],
+  "scan": [
+    "index.html",
+    "css",
+    "js"
+  ],
+  "outDir": "fonts",
+  "cssPath": "fonts.css",
+  "hrefPrefix": "./fonts/",
+  "copyright": "Copyright The M PLUS Rounded 1c Project Authors\nCopyright The DotGothic16 Project Authors",
+  "license": "SIL Open Font License 1.1 — 全文は fonts/OFL.txt"
+}

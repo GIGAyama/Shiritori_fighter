@@ -32,8 +32,8 @@
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self';
-  style-src 'self' https://fonts.googleapis.com;
-  font-src 'self' https://fonts.gstatic.com;
+  style-src 'self';
+  font-src 'self';
   img-src 'self' data:;
   connect-src 'self';
   worker-src 'self';
@@ -61,9 +61,10 @@
 
 <!-- フォントは「見た目だけ」の依存。学校のフィルタリングで届かなくても
      端末側の日本語フォントに落ちるだけで、ゲームは動く（css/style.css を参照）。 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=DotGothic16&display=swap">
+  <!-- 書体は自分のところから配る（生成物。node tools/fonts/build-fonts.mjs で作り直す）。
+       ここに Google Fonts への link を戻さないこと。学校のフィルタが
+       塞ぐと書体が当たらず、塞ぎ方によっては画面そのものが出ない。 -->
+  <link rel="stylesheet" href="./fonts.css" />
 
 <link rel="stylesheet" href="./css/style.css">
 </head>
