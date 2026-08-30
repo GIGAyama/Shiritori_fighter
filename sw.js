@@ -11,7 +11,7 @@
  */
 const CACHE_PREFIX = 'shiritori-';
 // APP_VERSION は手で上げない。node tools/build-sw.mjs が先読み対象の中身から自動で決める
-const APP_VERSION = 'v15d08fa1'; /* __APP_VERSION__ */
+const APP_VERSION = 'vb07b1151'; /* __APP_VERSION__ */
 const CACHE_STATIC = CACHE_PREFIX + 'static-' + APP_VERSION;
 const CACHE_RUNTIME = CACHE_PREFIX + 'runtime-' + APP_VERSION;
 
@@ -28,6 +28,7 @@ const PRECACHE_URLS = [
   './css/style.css',
   './js/kana.js',
   './js/app.js',
+  './giga-app-links.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-192.png',

@@ -124,6 +124,25 @@ body {
 .screen { display: none; flex: 1; flex-direction: column; min-height: 0; }
 .screen.active { display: flex; }
 
+/* 画面のいちばん下。クレジットと、利用規約・プライバシーへの行き先を 1 行に収める。
+   2 行になると、そのぶん遊ぶ場所を奪う。幅が足りなくなったら切るのはクレジットの
+   ほうで、行き先は必ず残す。画面からそこへ辿れるのはここだけしかない。
+   ⚠️ min-width: 0 を落とさないこと。行き先は折り返さない（nowrap）ので、
+      これが無いと最小幅がこの段を押し広げ、狭い画面で横に溢れる。 */
+.app-foot {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    max-inline-size: 100%;
+    margin: 14px 0 0;
+    font-size: 12px;
+    color: var(--ink-dim);
+}
+.app-foot .credit { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .panel {
     background: var(--panel);
     border: 1px solid var(--panel-border);

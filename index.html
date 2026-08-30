@@ -150,6 +150,21 @@
         </div>
 
         <button id="start-game-btn" type="button">バトルスタート！</button>
+
+        <!--
+          画面のいちばん下。クレジットと、利用規約・プライバシーへの行き先を
+          1 行に収める。2 行になると、そのぶん遊ぶ場所を奪う。
+          幅が足りなくなったら切るのはクレジットのほうで、行き先は必ず残す。
+          画面からそこへ辿れるのは、ここだけしかない。
+
+          ⚠️ data-theme="dark" を外さないこと。このアプリは
+             <meta name="color-scheme" content="light"> を宣言したうえで
+             地を #170f33 に塗っている。書かないと部品は「明るい画面」だと
+             思って暗い字を選び、暗い地に暗い字が載って読めなくなる。
+             部品は Shadow DOM なので、こちらの CSS では直せない。
+        -->
+        <p class="app-foot"><span class="credit">© 2026 しりとりファイター／ＩＣＴ支援の杜</span><span
+          data-giga-links data-links="terms,privacy" data-theme="dark"></span></p>
     </section>
 
     <!-- ============ バトル画面 ============ -->
@@ -236,5 +251,11 @@
 
 <script src="./js/kana.js"></script>
 <script src="./js/app.js"></script>
+
+<!-- 利用規約・プライバシーへの行き先。中身は正本の部品
+     standards/web/giga-app-links.js（配布物 giga-app-links.js）が、
+     セットアップ画面の下に置いた <span data-giga-links> の中に出す。
+     data-links と data-theme は置き場所の側に書いてある。 -->
+<script src="./giga-app-links.js" defer></script>
 </body>
 </html>
