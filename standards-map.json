@@ -13,6 +13,10 @@
       "local": "scripts/check-standard.mjs"
     },
     {
+      "canonical": "web/giga-app-links.js",
+      "local": "giga-app-links.js"
+    },
+    {
       "canonical": "fonts/build-fonts.mjs",
       "local": "tools/fonts/build-fonts.mjs"
     },
